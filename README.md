@@ -29,9 +29,6 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
     "nvim-lua/plenary.nvim",
     "nvim-telescope/telescope.nvim", -- optional but recommended
   },
-  config = function()
-    require("argocd").setup()
-  end,
 }
 ```
 
