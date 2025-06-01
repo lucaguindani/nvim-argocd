@@ -246,10 +246,10 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── 🔹 Help Window (Bottom Aligned) ───────────────────────────────
+  -- ─── Help Window (Bottom Aligned) ───────────────────────────────
   local help_buf = vim.api.nvim_create_buf(false, true)
   local help_lines = {
-    " ArgoCD Keybindings ",
+    " Keybindings ",
     "---------------------",
     "s   → Sync project",
     "d   → Delete project",
