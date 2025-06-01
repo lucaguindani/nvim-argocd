@@ -7,6 +7,8 @@ local config = {
   token = nil,
 }
 
+local logged_in = false
+
 local function api_request(method, path, body)
   local curl = require("plenary.curl")
   local url = config.host .. path
@@ -25,6 +27,35 @@ local function api_request(method, path, body)
   end
 
   return curl.request(url, options)
+end
+
+local function lazy_login(callback)
+  if logged_in or (config.token and config.host) then
+    callback()
+    return
+  end
+
+  vim.ui.input({ prompt = "ArgoCD API Host (e.g. https://argocd.example.com): " }, function(host)
+    config.host = host
+    vim.ui.input({ prompt = "Username: " }, function(user)
+      vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
+        local curl = require("plenary.curl")
+        local res = curl.post(config.host .. "/api/v1/session", {
+          body = vim.fn.json_encode({ username = user, password = pass }),
+          headers = { ["Content-Type"] = "application/json" },
+        })
+        if res.status == 200 then
+          local data = vim.fn.json_decode(res.body)
+          config.token = data.token
+          logged_in = true
+          vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
+          callback()
+        else
+          vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+        end
+      end)
+    end)
+  end)
 end
 
 function M.list_apps()
@@ -156,48 +187,33 @@ function M.telescope_apps()
 end
 
 function M.setup()
-  vim.ui.input({ prompt = "ArgoCD API Host (e.g. https://argocd.example.com): " }, function(host)
-    config.host = host
-    vim.ui.input({ prompt = "Username: " }, function(user)
-      vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
-        local curl = require("plenary.curl")
-        local res = curl.post(config.host .. "/api/v1/session", {
-          body = vim.fn.json_encode({ username = user, password = pass }),
-          headers = { ["Content-Type"] = "application/json" },
-        })
-        if res.status == 200 then
-          local data = vim.fn.json_decode(res.body)
-          config.token = data.token
-          vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
-        else
-          vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
-        end
-      end)
-    end)
-  end)
+  vim.api.nvim_create_user_command("ArgoList", function()
+    lazy_login(M.list_apps)
+  end, {})
 
-  vim.api.nvim_create_user_command("ArgoList", M.list_apps, {})
   vim.api.nvim_create_user_command("ArgoSync", function(opts)
-    M.sync_app(opts.args)
+    lazy_login(function() M.sync_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoDiff", function(opts)
-    M.diff_app(opts.args)
+    lazy_login(function() M.diff_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoLogs", function(opts)
-    M.logs_app(opts.args)
+    lazy_login(function() M.logs_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoDelete", function(opts)
-    M.delete_app(opts.args)
+    lazy_login(function() M.delete_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoRollback", function(opts)
-    M.rollback_app(opts.args)
+    lazy_login(function() M.rollback_app(opts.args) end)
   end, { nargs = 1 })
 
-  vim.api.nvim_create_user_command("ArgoPick", M.telescope_apps, {})
+  vim.api.nvim_create_user_command("ArgoPick", function()
+    lazy_login(M.telescope_apps)
+  end, {})
 end
 
 return M
