@@ -4,7 +4,7 @@
 -- Neovim version check
 local v = vim.version()
 if not (v.major > 0 or (v.major == 0 and v.minor >= 7)) then
-  vim.notify("[argocd.nvim] Requires Neovim >= 0.7.0", vim.log.levels.ERROR)
+  vim.notify("[argocd.nvim] requires Neovim >= 0.7.0", vim.log.levels.ERROR)
   return
 end
 
