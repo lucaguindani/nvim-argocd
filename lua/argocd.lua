@@ -216,6 +216,44 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
+  -- ─── 🔹 Help Window ───────────────────────────────────────────────
+  local help_buf = vim.api.nvim_create_buf(false, true)
+  local help_lines = {
+    " ArgoCD Keybindings ",
+    "---------------------",
+    "s   → Sync app",
+    "d   → Delete app",
+    "q   → Close help",
+    "",
+    "Auto-refresh every 5s",
+  }
+  vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
+
+  local win_opts = {
+    relative = "editor",
+    width = 30,
+    height = #help_lines,
+    row = 2,
+    col = vim.o.columns - 32,
+    style = "minimal",
+    border = "rounded",
+  }
+
+  local help_win = vim.api.nvim_open_win(help_buf, false, win_opts)
+  vim.api.nvim_win_set_option(help_win, 'number', false)
+  vim.api.nvim_win_set_option(help_win, 'relativenumber', false)
+
+  vim.api.nvim_buf_set_keymap(help_buf, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      if vim.api.nvim_win_is_valid(help_win) then
+        vim.api.nvim_win_close(help_win, true)
+      end
+    end,
+  })
+  -- ─────────────────────────────────────────────────────────────────
+
   -- Set key to sync the project under cursor
   vim.api.nvim_buf_set_keymap(buf, "n", "s", "", {
     noremap = true,
