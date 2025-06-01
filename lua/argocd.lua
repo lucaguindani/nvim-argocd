@@ -110,46 +110,60 @@ function M.list_apps()
   end
 
   local json = vim.fn.json_decode(res.body)
-  local bufnr = vim.api.nvim_create_buf(false, true)
   local lines = {}
+  local app_names = {}
 
-  -- Prepare lines and their highlight info
-  local highlights = {}
-
-  for i, app in ipairs(json.items or {}) do
-    local name = app.metadata.name
-    local sync_status = app.status.sync and app.status.sync.status or "Unknown"
-
-    local icon, hl_group
+  for _, app in ipairs(json.items or {}) do
+    local sync_status = app.status.sync.status or "Unknown"
+    local icon, color
     if sync_status == "Synced" then
-      icon = "✅"
-      hl_group = "DiffAdd"       -- green
-    elseif sync_status == "OutOfSync" then
-      icon = "⚠️"
-      hl_group = "WarningMsg"   -- orange/yellow
+      icon = "✓"
+      color = "String"  -- greenish
     else
-      icon = "❓"
-      hl_group = "Comment"      -- grey
+      icon = "⚠"
+      color = "WarningMsg"  -- orange
     end
-
-    table.insert(lines, string.format("%s %s", icon, name))
-
-    table.insert(highlights, { line = i - 1, col_start = 0, col_end = #icon, hl = hl_group })
+    local line = string.format("%s %s", icon, app.metadata.name)
+    table.insert(lines, line)
+    table.insert(app_names, app.metadata.name)
   end
 
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-  vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-  vim.api.nvim_buf_set_option(bufnr, "filetype", "argocd")
-
-  -- Open a vertical split and set buffer
   vim.cmd("vsplit")
-  vim.api.nvim_win_set_buf(0, bufnr)
+  vim.cmd("enew")
+  local buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo.filetype = "argocd"
 
-  -- Apply highlights
-  for _, hl in ipairs(highlights) do
-    vim.api.nvim_buf_add_highlight(bufnr, -1, hl.hl, hl.line, hl.col_start, hl.col_end)
+  -- Apply highlight for icons
+  for i, line in ipairs(lines) do
+    local sync_status = json.items[i].status.sync.status or "Unknown"
+    local hl_group = sync_status == "Synced" and "String" or "WarningMsg"
+    vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 1)  -- highlight icon only
   end
+
+  -- Map <CR> on the buffer to sync app if out of sync, with confirmation prompt
+  vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local line_nr = vim.api.nvim_win_get_cursor(0)[1]
+      local app_name = app_names[line_nr]
+      local app_status = json.items[line_nr].status.sync.status or "Unknown"
+      if app_status ~= "Synced" then
+        vim.ui.select({"No", "Yes"}, {
+          prompt = "Sync app '" .. app_name .. "' now?",
+        }, function(choice)
+          if choice == "Yes" then
+            M.sync_app(app_name)
+          else
+            vim.notify("Sync cancelled", vim.log.levels.INFO)
+          end
+        end)
+      else
+        vim.notify(app_name .. " is already synced.", vim.log.levels.INFO)
+      end
+    end,
+  })
 end
 
 function M.sync_app(app_name)
