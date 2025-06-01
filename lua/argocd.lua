@@ -247,7 +247,7 @@ function M.list_apps()
   fetch_and_draw()
 
   -- Start the timer and save the handle
-  app_list_timer = uv.new_timer()
+  app_list_timer = vim.loop.new_timer()
   timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
 
   -- Stop timer when buffer is unloaded
