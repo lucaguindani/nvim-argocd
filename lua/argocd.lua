@@ -39,7 +39,7 @@ local function load_credentials()
 end
 
 local function api_request(method, path, body)
-  if not config.host or not config.token then
+  if not config.host or not config.token or not path then
     return {
       status = 401,
       body = "Not logged in or missing host/token",
