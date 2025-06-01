@@ -217,27 +217,6 @@ function M.sync_app(app_name)
   end
 end
 
-function M.logs_app(app_name)
-  vim.notify("Fetching logs via kubectl: " .. app_name, vim.log.levels.INFO)
-  local cmd = {"kubectl", "logs", "deployment/" .. app_name, "--tail=50"}
-  vim.fn.jobstart(cmd, {
-    stdout_buffered = true,
-    on_stdout = function(_, data)
-      if data and #data > 0 then
-        vim.cmd("vsplit")
-        vim.cmd("enew")
-        vim.api.nvim_buf_set_lines(0, 0, -1, false, data)
-        vim.bo.filetype = "log"
-      end
-    end,
-    on_stderr = function(_, data)
-      if data and data[1] ~= "" then
-        vim.notify(table.concat(data, "\n"), vim.log.levels.ERROR)
-      end
-    end
-  })
-end
-
 function M.delete_app(app_name)
   if not app_name or app_name == "" then
     vim.notify("Usage: :ArgoDelete <app-name>", vim.log.levels.WARN)
@@ -337,10 +316,6 @@ function M.setup()
 
   vim.api.nvim_create_user_command("ArgoSync", function(opts)
     lazy_login(function() M.sync_app(opts.args) end)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command("ArgoLogs", function(opts)
-    lazy_login(function() M.logs_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoDelete", function(opts)

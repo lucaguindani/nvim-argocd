@@ -7,9 +7,8 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 
 ## Features
 
-- List ArgoCD applications in a vertical split buffer
+- List applications in a vertical split buffer
 - Sync applications
-- View logs of app deployments
 - Delete applications with confirmation prompt
 - Rollback applications to a selected revision
 - Telescope picker with keybindings for all major actions
@@ -30,7 +29,6 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   cmd = {
     "ArgoList",
     "ArgoSync",
-    "ArgoLogs",
     "ArgoDelete",
     "ArgoRollback",
     "ArgoPick",
@@ -49,7 +47,6 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 |-------------------|------------------------------------|
 | `:ArgoList`       | List all ArgoCD apps                 |
 | `:ArgoSync <app>` | Sync the specified app               |
-| `:ArgoLogs <app>` | Show logs for the app’s deployment   |
 | `:ArgoDelete <app>` | Delete app with confirmation prompt |
 | `:ArgoRollback <app>` | Rollback app to a selected revision |
 | `:ArgoPick`       | Telescope picker for interactive app selection and actions |
