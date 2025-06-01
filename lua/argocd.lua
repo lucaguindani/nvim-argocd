@@ -162,9 +162,12 @@ function M.list_apps()
         if i == cursor_line then
           local comment_start = 2 + #app.name + 1
           local line = lines[i]
+
           local comment_pos = line:find("%(")
           if comment_pos then
-            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos, #line)
+            local start_col = comment_pos - 1 -- zero-based index
+            local end_col = vim.fn.strdisplaywidth(line)
+            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, start_col, end_col)
           end
         end
       end
