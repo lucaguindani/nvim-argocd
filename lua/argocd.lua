@@ -156,7 +156,8 @@ function M.list_apps()
 
       for i, app in ipairs(app_names) do
         local hl_group = app.status == "Synced" and "String" or "WarningMsg"
-        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 2 + #app.name)
+        local icon_len = vim.fn.strdisplaywidth(app.icon) + 1 -- +1 for space
+        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, icon_len + #app.name)
 
         if i == cursor_line then
           local comment_start = 2 + #app.name + 1
