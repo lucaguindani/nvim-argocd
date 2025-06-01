@@ -105,7 +105,6 @@ end
 load_credentials()
 
 function M.list_apps()
-  -- Cancel previous timer if any
   if timer then
     timer:stop()
     timer:close()
@@ -127,15 +126,41 @@ function M.list_apps()
 
     for _, app in ipairs(json.items or {}) do
       local sync_status = app.status.sync.status or "Unknown"
-      local icon, color
+      local icon
       if sync_status == "Synced" then
         icon = "✓"
-        color = "String"
       else
         icon = "⚠"
-        color = "WarningMsg"
       end
-      local line = string.format("%s %s", icon, app.metadata.name)
+
+      local commit_sha = app.status.sync.revision or "unknown"
+      local short_sha = commit_sha:sub(1, 7)
+
+      -- Try to get commit message snippet
+      local commit_msg = ""
+      if app.status.operationState
+         and app.status.operationState.syncResult
+         and app.status.operationState.syncResult.revisionMessage then
+        commit_msg = app.status.operationState.syncResult.revisionMessage
+      elseif app.status.operationState
+         and app.status.operationState.message then
+        commit_msg = app.status.operationState.message
+      end
+
+      -- Shorten commit message to 50 chars with ellipsis
+      if #commit_msg > 50 then
+        commit_msg = commit_msg:sub(1, 50) .. "..."
+      end
+
+      local left_text = string.format("%s %s", icon, app.metadata.name)
+      local right_text = string.format("%s %s", short_sha, commit_msg)
+
+      -- Calculate padding for right align (assuming 80 cols width)
+      local total_width = 80
+      local padding = total_width - #left_text - #right_text
+      if padding < 1 then padding = 1 end
+
+      local line = left_text .. string.rep(" ", padding) .. right_text
       table.insert(lines, line)
       table.insert(app_names, app.metadata.name)
     end
@@ -154,9 +179,15 @@ function M.list_apps()
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
       for i, _ in ipairs(lines) do
-        local sync_status = json.items[i].status.sync.status or "Unknown"
+        local app = json.items[i]
+        local sync_status = app.status.sync.status or "Unknown"
         local hl_group = sync_status == "Synced" and "String" or "WarningMsg"
-        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 1)
+        -- Highlight icon and app name (first part)
+        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 2 + #app.metadata.name)
+        -- Highlight commit SHA and message with Comment highlight (secondary color)
+        local left_text_len = 2 + #app.metadata.name
+        local line_len = #lines[i]
+        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, left_text_len + (#lines[i]:sub(left_text_len + 1):match("^%s*") or 0), line_len)
       end
     end)
   end
@@ -166,7 +197,6 @@ function M.list_apps()
   buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].filetype = "argocd"
 
-  -- <CR> to confirm sync for out-of-sync apps
   vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
     noremap = true,
     silent = true,
@@ -196,10 +226,8 @@ function M.list_apps()
     end,
   })
 
-  -- First fetch and draw
   fetch_and_draw()
 
-  -- Start timer to refresh every 5 seconds
   timer = vim.loop.new_timer()
   timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
 end
