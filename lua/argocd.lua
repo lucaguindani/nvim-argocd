@@ -61,18 +61,51 @@ end
 
 function M.list_apps()
   local res = api_request("get", "/api/v1/applications")
-  if res.status == 200 then
-    local json = vim.fn.json_decode(res.body)
-    local apps = {}
-    for _, app in ipairs(json.items or {}) do
-      table.insert(apps, app.metadata.name)
-    end
-    vim.cmd("vsplit")
-    vim.cmd("enew")
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, apps)
-    vim.bo.filetype = "argocd"
-  else
+  if res.status ~= 200 then
     vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
+    return
+  end
+
+  local json = vim.fn.json_decode(res.body)
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  local lines = {}
+
+  -- Prepare lines and their highlight info
+  local highlights = {}
+
+  for i, app in ipairs(json.items or {}) do
+    local name = app.metadata.name
+    local sync_status = app.status.sync and app.status.sync.status or "Unknown"
+
+    local icon, hl_group
+    if sync_status == "Synced" then
+      icon = "✅"
+      hl_group = "DiffAdd"       -- green
+    elseif sync_status == "OutOfSync" then
+      icon = "⚠️"
+      hl_group = "WarningMsg"   -- orange/yellow
+    else
+      icon = "❓"
+      hl_group = "Comment"      -- grey
+    end
+
+    table.insert(lines, string.format("%s %s", icon, name))
+
+    table.insert(highlights, { line = i - 1, col_start = 0, col_end = #icon, hl = hl_group })
+  end
+
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+  vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+  vim.api.nvim_buf_set_option(bufnr, "filetype", "argocd")
+
+  -- Open a vertical split and set buffer
+  vim.cmd("vsplit")
+  vim.api.nvim_win_set_buf(0, bufnr)
+
+  -- Apply highlights
+  for _, hl in ipairs(highlights) do
+    vim.api.nvim_buf_add_highlight(bufnr, -1, hl.hl, hl.line, hl.col_start, hl.col_end)
   end
 end
 
