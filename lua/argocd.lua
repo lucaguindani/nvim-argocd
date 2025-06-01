@@ -8,7 +8,7 @@ local config = {
 }
 local creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
 local logged_in = false
-local timer = nil
+local app_list_timer = nil
 local buf = nil
 local app_names = {}
 
@@ -246,8 +246,22 @@ function M.list_apps()
 
   fetch_and_draw()
 
-  timer = vim.loop.new_timer()
+  -- Start the timer and save the handle
+  app_list_timer = uv.new_timer()
   timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
+
+  -- Stop timer when buffer is unloaded
+  vim.api.nvim_create_autocmd({ "BufWipeout", "BufUnload", "WinClosed" }, {
+    buffer = buf,
+    once = true,
+    callback = function()
+      if app_list_timer then
+        app_list_timer:stop()
+        app_list_timer:close()
+        app_list_timer = nil
+      end
+    end,
+  })
 end
 
 function M.sync_app(app_name)
