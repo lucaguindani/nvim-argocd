@@ -1,4 +1,4 @@
--- File: lua/plugins/argocd.lua
+-- File: lua/argocd.lua
 -- ArgoCD Plugin for Neovim (Lazy.nvim compatible with Telescope support)
 
 local M = {}
@@ -373,26 +373,7 @@ function M.clear_credentials()
   end
 end
 
-function M.setup()
-  vim.api.nvim_create_user_command("ArgoList", function()
-    lazy_login(M.list_apps)
-  end, {})
-
-  vim.api.nvim_create_user_command("ArgoSync", function(opts)
-    lazy_login(function() M.sync_app(opts.args) end)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command("ArgoDelete", function(opts)
-    lazy_login(function() M.delete_app(opts.args) end)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command("ArgoPick", function()
-    lazy_login(M.telescope_apps)
-  end, {})
-
-  vim.api.nvim_create_user_command("ArgoClearCreds", function()
-    M.clear_credentials()
-  end, {})
-end
+-- Export lazy_login so plugin/argocd.lua can use it
+M.lazy_login = lazy_login
 
 return M

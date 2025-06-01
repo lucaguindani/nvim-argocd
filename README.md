@@ -45,7 +45,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 | `:ArgoSync <app>` | Sync the specified app               |
 | `:ArgoDelete <app>` | Delete app with confirmation prompt |
 | `:ArgoPick`       | Telescope picker for interactive app selection and actions |
-| `:ArgoClearCreds` | Clear credentials |
+| `:ArgoLogout` | Clear credentials |
 
 
 ### Telescope Picker Keybindings (insert mode)
