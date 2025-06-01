@@ -121,75 +121,63 @@ function M.list_apps()
     end
 
     local json = vim.fn.json_decode(res.body)
-    local lines = {}
     app_names = {}
 
-    for _, app in ipairs(json.items or {}) do
+    for i, app in ipairs(json.items or {}) do
       local sync_status = app.status.sync.status or "Unknown"
-      local icon
-      if sync_status == "Synced" then
-        icon = "✓"
-      else
-        icon = "⚠"
-      end
-
+      local icon = (sync_status == "Synced") and "✓" or "⚠"
       local commit_sha = app.status.sync.revision or "unknown"
       local short_sha = commit_sha:sub(1, 7)
+      local branch = app.spec.source.targetRevision or "unknown"
 
-      -- Try to get commit message snippet
-      local commit_msg = ""
-      if app.status.operationState
-         and app.status.operationState.syncResult
-         and app.status.operationState.syncResult.revisionMessage then
-        commit_msg = app.status.operationState.syncResult.revisionMessage
-      elseif app.status.operationState
-         and app.status.operationState.message then
-        commit_msg = app.status.operationState.message
-      end
-
-      -- Shorten commit message to 50 chars with ellipsis
-      if #commit_msg > 50 then
-        commit_msg = commit_msg:sub(1, 50) .. "..."
-      end
-
-      local left_text = string.format("%s %s", icon, app.metadata.name)
-      local right_text = string.format("%s %s", short_sha, commit_msg)
-
-      -- Calculate padding for right align (assuming 80 cols width)
-      local total_width = 80
-      local padding = total_width - #left_text - #right_text
-      if padding < 1 then padding = 1 end
-
-      local line = left_text .. string.rep(" ", padding) .. right_text
-      table.insert(lines, line)
-      table.insert(app_names, app.metadata.name)
+      app_names[i] = {
+        name = app.metadata.name,
+        icon = icon,
+        sha = short_sha,
+        branch = branch,
+        status = sync_status,
+      }
     end
 
-    vim.schedule(function()
-      if not vim.api.nvim_buf_is_valid(buf) then
-        if timer then
-          timer:stop()
-          timer:close()
-          timer = nil
+    local function draw_lines()
+      local lines = {}
+      local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+
+      for i, app in ipairs(app_names) do
+        local base = string.format("%s %s", app.icon, app.name)
+        if i == cursor_line then
+          base = base .. string.format(" (%s %s)", app.branch, app.sha)
         end
-        return
+        lines[i] = base
       end
 
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
-      for i, _ in ipairs(lines) do
-        local app = json.items[i]
-        local sync_status = app.status.sync.status or "Unknown"
-        local hl_group = sync_status == "Synced" and "String" or "WarningMsg"
-        -- Highlight icon and app name (first part)
-        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 2 + #app.metadata.name)
-        -- Highlight commit SHA and message with Comment highlight (secondary color)
-        local left_text_len = 2 + #app.metadata.name
-        local line_len = #lines[i]
-        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, left_text_len + (#lines[i]:sub(left_text_len + 1):match("^%s*") or 0), line_len)
+      for i, app in ipairs(app_names) do
+        local hl_group = app.status == "Synced" and "String" or "WarningMsg"
+        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 2 + #app.name)
+
+        if i == cursor_line then
+          local comment_start = 2 + #app.name + 1
+          local line = lines[i]
+          local comment_pos = line:find("%(")
+          if comment_pos then
+            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos, #line)
+          end
+        end
       end
-    end)
+    end
+
+    vim.schedule(draw_lines)
+
+    vim.api.nvim_create_autocmd("CursorMoved", {
+      buffer = buf,
+      callback = function()
+        vim.schedule(draw_lines)
+      end,
+      desc = "Highlight branch and SHA on current line",
+    })
   end
 
   vim.cmd("vsplit")
@@ -202,26 +190,28 @@ function M.list_apps()
     silent = true,
     callback = function()
       local line_nr = vim.api.nvim_win_get_cursor(0)[1]
-      local app_name = app_names[line_nr]
-      local res = api_request("get", "/api/v1/applications/" .. app_name)
+      local app = app_names[line_nr]
+      if not app then return end
+
+      local res = api_request("get", "/api/v1/applications/" .. app.name)
       if res.status ~= 200 then
         vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
         return
       end
-      local app = vim.fn.json_decode(res.body)
-      local app_status = app.status.sync.status or "Unknown"
+      local app_data = vim.fn.json_decode(res.body)
+      local app_status = app_data.status.sync.status or "Unknown"
       if app_status ~= "Synced" then
         vim.ui.select({"No", "Yes"}, {
-          prompt = "Sync app '" .. app_name .. "' now?",
+          prompt = "Sync app '" .. app.name .. "' now?",
         }, function(choice)
           if choice == "Yes" then
-            M.sync_app(app_name)
+            M.sync_app(app.name)
           else
             vim.notify("Sync cancelled", vim.log.levels.INFO)
           end
         end)
       else
-        vim.notify(app_name .. " is already synced.", vim.log.levels.INFO)
+        vim.notify(app.name .. " is already synced.", vim.log.levels.INFO)
       end
     end,
   })
