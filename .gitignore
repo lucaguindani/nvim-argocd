@@ -1,0 +1,37 @@
+# IDE files
+.idea
+.vscode
+
+# Ignore Lua cache files
+*.luac
+
+# Ignore swap files
+*.swp
+*.swo
+
+# Ignore backup files
+*.bak
+*~
+
+# Ignore undo files
+*.undo
+
+# Ignore node_modules if you use any JS tooling (optional)
+node_modules/
+
+# Ignore compiled binary files (if any)
+*.o
+*.so
+*.dll
+
+# Ignore logs
+*.log
+
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+
+# Ignore coverage reports (if you add tests)
+coverage/
