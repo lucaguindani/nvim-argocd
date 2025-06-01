@@ -210,6 +210,12 @@ function M.list_apps()
   vim.cmd("enew")
   buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].filetype = "argocd"
+  -- Make buffer non-modifiable and readonly to prevent insert mode
+  vim.bo[buf].modifiable = false
+  vim.bo[buf].readonly = true
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].swapfile = false
 
   -- Disable orange highlight on line number for this buffer
   vim.api.nvim_buf_call(buf, function()
@@ -221,8 +227,8 @@ function M.list_apps()
   local help_lines = {
     " ArgoCD Keybindings ",
     "---------------------",
-    "s   → Sync app",
-    "d   → Delete app",
+    "s   → Sync project",
+    "d   → Delete project",
     "q   → Close help",
     "",
     "Auto-refresh every 5s",
@@ -251,11 +257,11 @@ function M.list_apps()
   vim.api.nvim_win_set_option(help_win, 'number', false)
   vim.api.nvim_win_set_option(help_win, 'relativenumber', false)
 
-  vim.api.nvim_buf_set_keymap(help_buf, "n", "q", "", {
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
     noremap = true,
     silent = true,
     callback = function()
-      if vim.api.nvim_win_is_valid(help_win) then
+      if help_win and vim.api.nvim_win_is_valid(help_win) then
         vim.api.nvim_win_close(help_win, true)
       end
     end,
