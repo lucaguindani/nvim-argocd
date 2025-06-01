@@ -216,7 +216,8 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
+  -- Set key to sync the project under cursor
+  vim.api.nvim_buf_set_keymap(buf, "n", "s", "", {
     noremap = true,
     silent = true,
     callback = function()
@@ -244,6 +245,18 @@ function M.list_apps()
       else
         vim.notify(app.name .. " is already synced.", vim.log.levels.INFO)
       end
+    end,
+  })
+
+  -- Set key to delete the project under cursor
+  vim.api.nvim_buf_set_keymap(buf, "n", "d", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local line_nr = vim.api.nvim_win_get_cursor(0)[1]
+      local app = app_names[line_nr]
+      if not app then return end
+      M.delete_app(app.name)
     end,
   })
 
