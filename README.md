@@ -12,14 +12,10 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 - Delete applications
 - Telescope picker with keybindings for all major actions
 
----
-
 ## Requirements
 
 - Neovim 0.7+ with Lua support  
 - Telescope.nvim for picker support (optional)
-
----
 
 ## Installation
 
@@ -50,6 +46,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 | `:ArgoDelete <app>` | Delete app with confirmation prompt |
 | `:ArgoPick`       | Telescope picker for interactive app selection and actions |
 | `:ArgoClearCreds` | Clear credentials |
+
 
 ### Telescope Picker Keybindings (insert mode)
 
