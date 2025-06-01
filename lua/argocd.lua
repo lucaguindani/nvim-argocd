@@ -164,13 +164,12 @@ function M.list_apps()
         local hl_group = app.status == "Synced" and "String" or "WarningMsg"
         local icon_len = vim.fn.strdisplaywidth(lines[i]) - #app.name -- approximate icon length plus space
         vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, icon_len)
-    
+        
         if i == cursor_line then
           local comment_pos = lines[i]:find("%(")
           if comment_pos then
             local start_col = comment_pos - 1
-            local end_col = vim.fn.strdisplaywidth(lines[i])
-            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, start_col, end_col)
+            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, start_col, -1)
           end
         end
       end
