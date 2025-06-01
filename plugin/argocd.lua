@@ -1,11 +1,21 @@
 -- plugin/argocd.lua
 -- This file is loaded automatically by Neovim when the plugin is installed
 
+-- Neovim version check
+local v = vim.version()
+if not (v.major > 0 or (v.major == 0 and v.minor >= 7)) then
+  vim.notify("[argocd.nvim] Requires Neovim >= 0.7.0", vim.log.levels.ERROR)
+  return
+end
+
+-- Check if the argocd.nvim plugin is installed
 local ok, argocd = pcall(require, "argocd")
 if not ok then
   vim.notify("Failed to load argocd.nvim plugin", vim.log.levels.ERROR)
   return
 end
+
+-- Set up the plugin with default commands and options
 
 vim.api.nvim_create_user_command("ArgoList", function()
   argocd.lazy_login(argocd.list_apps)
