@@ -119,6 +119,15 @@ function M.list_apps()
   end
 
   local function fetch_and_draw()
+    if not vim.api.nvim_buf_is_valid(buf) then
+      if app_list_timer then
+        app_list_timer:stop()
+        app_list_timer:close()
+        app_list_timer = nil
+      end
+      return
+    end
+
     local res = api_request("get", "/api/v1/applications")
     if res.status ~= 200 then
       vim.schedule(function()
@@ -147,6 +156,16 @@ function M.list_apps()
     end
 
     local function draw_lines()
+      if not vim.api.nvim_buf_is_valid(buf) then
+        -- Buffer was closed, stop timer and abort drawing
+        if app_list_timer then
+          app_list_timer:stop()
+          app_list_timer:close()
+          app_list_timer = nil
+        end
+        return
+      end
+
       local lines = {}
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
 
@@ -171,9 +190,11 @@ function M.list_apps()
         lines[i] = base
       end
 
-      -- Make the buffer temporarily modifiable
+      -- Allow temporary buffer modification
       vim.bo[buf].modifiable = true
+      -- List projects
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      -- Disable buffer modification
       vim.bo[buf].modifiable = false
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
