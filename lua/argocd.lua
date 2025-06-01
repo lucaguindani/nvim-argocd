@@ -7,8 +7,10 @@ local config = {
   token = nil,
 }
 local creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
-
 local logged_in = false
+local timer = nil
+local buf = nil
+local app_names = {}
 
 local function save_credentials()
   local creds = {
@@ -103,52 +105,81 @@ end
 load_credentials()
 
 function M.list_apps()
-  local res = api_request("get", "/api/v1/applications")
-  if res.status ~= 200 then
-    vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
-    return
+  -- Cancel previous timer if any
+  if timer then
+    timer:stop()
+    timer:close()
+    timer = nil
   end
 
-  local json = vim.fn.json_decode(res.body)
-  local lines = {}
-  local app_names = {}
-
-  for _, app in ipairs(json.items or {}) do
-    local sync_status = app.status.sync.status or "Unknown"
-    local icon, color
-    if sync_status == "Synced" then
-      icon = "✓"
-      color = "String"  -- greenish
-    else
-      icon = "⚠"
-      color = "WarningMsg"  -- orange
+  local function fetch_and_draw()
+    local res = api_request("get", "/api/v1/applications")
+    if res.status ~= 200 then
+      vim.schedule(function()
+        vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
+      end)
+      return
     end
-    local line = string.format("%s %s", icon, app.metadata.name)
-    table.insert(lines, line)
-    table.insert(app_names, app.metadata.name)
+
+    local json = vim.fn.json_decode(res.body)
+    local lines = {}
+    app_names = {}
+
+    for _, app in ipairs(json.items or {}) do
+      local sync_status = app.status.sync.status or "Unknown"
+      local icon, color
+      if sync_status == "Synced" then
+        icon = "✓"
+        color = "String"
+      else
+        icon = "⚠"
+        color = "WarningMsg"
+      end
+      local line = string.format("%s %s", icon, app.metadata.name)
+      table.insert(lines, line)
+      table.insert(app_names, app.metadata.name)
+    end
+
+    vim.schedule(function()
+      if not vim.api.nvim_buf_is_valid(buf) then
+        if timer then
+          timer:stop()
+          timer:close()
+          timer = nil
+        end
+        return
+      end
+
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
+
+      for i, _ in ipairs(lines) do
+        local sync_status = json.items[i].status.sync.status or "Unknown"
+        local hl_group = sync_status == "Synced" and "String" or "WarningMsg"
+        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 1)
+      end
+    end)
   end
 
   vim.cmd("vsplit")
   vim.cmd("enew")
-  local buf = vim.api.nvim_get_current_buf()
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.bo.filetype = "argocd"
+  buf = vim.api.nvim_get_current_buf()
+  vim.bo[buf].filetype = "argocd"
 
-  -- Apply highlight for icons
-  for i, line in ipairs(lines) do
-    local sync_status = json.items[i].status.sync.status or "Unknown"
-    local hl_group = sync_status == "Synced" and "String" or "WarningMsg"
-    vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, 1)  -- highlight icon only
-  end
-
-  -- Map <CR> on the buffer to sync app if out of sync, with confirmation prompt
+  -- <CR> to confirm sync for out-of-sync apps
   vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
     noremap = true,
     silent = true,
     callback = function()
       local line_nr = vim.api.nvim_win_get_cursor(0)[1]
       local app_name = app_names[line_nr]
-      local app_status = json.items[line_nr].status.sync.status or "Unknown"
+      local res = api_request("get", "/api/v1/applications/" .. app_name)
+      if res.status ~= 200 then
+        vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
+        return
+      end
+      local app = vim.fn.json_decode(res.body)
+      local app_status = app.status.sync.status or "Unknown"
       if app_status ~= "Synced" then
         vim.ui.select({"No", "Yes"}, {
           prompt = "Sync app '" .. app_name .. "' now?",
@@ -164,6 +195,13 @@ function M.list_apps()
       end
     end,
   })
+
+  -- First fetch and draw
+  fetch_and_draw()
+
+  -- Start timer to refresh every 5 seconds
+  timer = vim.loop.new_timer()
+  timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
 end
 
 function M.sync_app(app_name)
