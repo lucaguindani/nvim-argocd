@@ -143,12 +143,21 @@ function M.list_apps()
     local function draw_lines()
       local lines = {}
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-    
+
       for i, app in ipairs(app_names) do
-        -- Get icon from web-devicons (fallback to default symbol)
-        local icon, icon_highlight = devicons.get_icon(app.name, nil, { default = true })
-        icon = icon or app.icon -- fallback to sync status icon if devicon missing
-        local base = string.format("%s %s", icon, app.name)
+        -- Get status icon and highlight group from devicons
+        local status_icon, status_hl
+        status_icon, status_hl = devicons.get_icon("argocd", nil, { default = true })
+        if app.status == "Synced" then
+          status_icon = status_icon or "✓"
+          status_hl = status_hl or "String"
+        else
+          status_icon = status_icon or "⚠"
+          status_hl = status_hl or "WarningMsg"
+        end
+
+        -- Build line: status icon + space + app name [+ branch and sha if current line]
+        local base = string.format("%s %s", status_icon, app.name)
     
         if i == cursor_line then
           base = base .. string.format(" (%s %s)", app.branch, app.sha)
@@ -161,15 +170,18 @@ function M.list_apps()
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
     
       for i, app in ipairs(app_names) do
-        local hl_group = app.status == "Synced" and "String" or "WarningMsg"
-        local icon_len = vim.fn.strdisplaywidth(lines[i]) - #app.name -- approximate icon length plus space
-        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, icon_len)
-        
+        -- Highlight status icon (1 char usually)
+        vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
+    
+        -- Highlight app name (starts at col 2)
+        local name_start = 2
+        vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
+    
+        -- Highlight branch and sha on current line as comment
         if i == cursor_line then
           local comment_pos = lines[i]:find("%(")
           if comment_pos then
-            local start_col = comment_pos - 1
-            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, start_col, -1)
+            vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos - 1, -1)
           end
         end
       end
