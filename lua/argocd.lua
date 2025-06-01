@@ -283,6 +283,14 @@ function M.delete_app(app_name)
 end
 
 function M.telescope_apps()
+  local has_telescope = pcall(require, "telescope")
+
+  if not has_telescope then
+    -- You can notify the user or return a message table for the picker
+    vim.notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.WARN)
+    return nil -- or return a dummy function/table if needed
+  end
+
   local pickers = require('telescope.pickers')
   local finders = require('telescope.finders')
   local conf = require('telescope.config').values
