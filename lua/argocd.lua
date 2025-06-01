@@ -236,10 +236,6 @@ function M.delete_app(app_name)
   end)
 end
 
-function M.rollback_app(app_name)
-  vim.notify("Rollback not supported via Argo API directly. Use CLI or Argo UI.", vim.log.levels.INFO)
-end
-
 function M.telescope_apps()
   local pickers = require('telescope.pickers')
   local finders = require('telescope.finders')
@@ -320,10 +316,6 @@ function M.setup()
 
   vim.api.nvim_create_user_command("ArgoDelete", function(opts)
     lazy_login(function() M.delete_app(opts.args) end)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command("ArgoRollback", function(opts)
-    lazy_login(function() M.rollback_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoPick", function()
