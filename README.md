@@ -28,6 +28,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
     require("argocd").setup()
   end
 }
+```
 
 ## Usage
 
