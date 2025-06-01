@@ -147,7 +147,6 @@ function M.list_apps()
       for i, app in ipairs(app_names) do
         -- Get status icon and highlight group from devicons
         local status_icon, status_hl
-        status_icon, status_hl = devicons.get_icon("argocd", nil, { default = true })
         if app.status == "Synced" then
           status_icon = status_icon or "✓"
           status_hl = status_hl or "String"
