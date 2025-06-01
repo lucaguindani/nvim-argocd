@@ -248,7 +248,7 @@ function M.list_apps()
 
   -- Start the timer and save the handle
   app_list_timer = vim.loop.new_timer()
-  timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
+  app_list_timer:start(5000, 5000, vim.schedule_wrap(fetch_and_draw))
 
   -- Stop timer when buffer is unloaded
   vim.api.nvim_create_autocmd({ "BufWipeout", "BufUnload", "WinClosed" }, {
