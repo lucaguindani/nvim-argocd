@@ -239,7 +239,7 @@ function M.list_apps()
     anchor = "NW",
     row = main_height,
     col = 0,
-    width = main_width / 2,
+    width = math.floor(main_width / 2),
     height = #help_lines,
     style = "minimal",
     border = "rounded",
