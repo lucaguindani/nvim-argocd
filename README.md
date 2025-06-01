@@ -30,6 +30,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   "lucaguindani/nvim-argocd",
   dependencies = {
     "nvim-lua/plenary.nvim",
+    "kyazdani42/nvim-web-devicons",
     "nvim-telescope/telescope.nvim", -- optional but recommended
   },
   config = function()

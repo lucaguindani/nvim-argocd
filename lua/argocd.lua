@@ -2,6 +2,7 @@
 -- ArgoCD Plugin for Neovim (Lazy.nvim compatible with Telescope support)
 
 local M = {}
+local devicons = require("nvim-web-devicons")
 local config = {
   host = nil,
   token = nil,
@@ -142,31 +143,33 @@ function M.list_apps()
     local function draw_lines()
       local lines = {}
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-
+    
       for i, app in ipairs(app_names) do
-        local base = string.format("%s %s", app.icon, app.name)
+        -- Get icon from web-devicons (fallback to default symbol)
+        local icon, icon_highlight = devicons.get_icon(app.name, nil, { default = true })
+        icon = icon or app.icon -- fallback to sync status icon if devicon missing
+        local base = string.format("%s %s", icon, app.name)
+    
         if i == cursor_line then
           base = base .. string.format(" (%s %s)", app.branch, app.sha)
         end
+    
         lines[i] = base
       end
-
+    
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-
+    
       for i, app in ipairs(app_names) do
         local hl_group = app.status == "Synced" and "String" or "WarningMsg"
-        local icon_len = vim.fn.strdisplaywidth(app.icon) + 1 -- +1 for space
-        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, icon_len + #app.name)
-
+        local icon_len = vim.fn.strdisplaywidth(lines[i]) - #app.name -- approximate icon length plus space
+        vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, icon_len)
+    
         if i == cursor_line then
-          local comment_start = 2 + #app.name + 1
-          local line = lines[i]
-
-          local comment_pos = line:find("%(")
+          local comment_pos = lines[i]:find("%(")
           if comment_pos then
-            local start_col = comment_pos - 1 -- zero-based index
-            local end_col = vim.fn.strdisplaywidth(line)
+            local start_col = comment_pos - 1
+            local end_col = vim.fn.strdisplaywidth(lines[i])
             vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, start_col, end_col)
           end
         end
