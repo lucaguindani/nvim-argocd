@@ -1,6 +1,6 @@
 # ArgoCD Neovim Plugin
 
-A lightweight Neovim plugin to control [ArgoCD](https://argoproj.github.io/argo-cd/) applications directly from your editor.  
+A lightweight Neovim plugin to control [ArgoCD](https://argoproj.github.io/) applications directly from your editor.  
 Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for easy app selection and actions.
 
 ---
@@ -14,7 +14,7 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 
 ---
 
-### Requirements
+## Requirements
 
 - Neovim 0.7+ with Lua support  
 - Telescope.nvim for picker support (optional)
