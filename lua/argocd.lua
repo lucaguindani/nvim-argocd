@@ -228,26 +228,29 @@ function M.list_apps()
     "Auto-refresh every 5s",
   }
   vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
-  
+
   local main_win = vim.api.nvim_get_current_win()
   local main_width = vim.api.nvim_win_get_width(main_win)
   local main_height = vim.api.nvim_win_get_height(main_win)
-  
+
+  local help_width = math.floor(main_width / 2)
+  local help_height = #help_lines
+
   local help_win = vim.api.nvim_open_win(help_buf, false, {
     relative = "win",
     win = main_win,
     anchor = "NW",
-    row = main_height,
-    col = 0,
-    width = math.floor(main_width / 2),
-    height = #help_lines,
+    row = main_height - help_height - 2,
+    col = main_width - help_width,
+    width = help_width,
+    height = help_height,
     style = "minimal",
     border = "rounded",
   })
-  
+
   vim.api.nvim_win_set_option(help_win, 'number', false)
   vim.api.nvim_win_set_option(help_win, 'relativenumber', false)
-  
+
   vim.api.nvim_buf_set_keymap(help_buf, "n", "q", "", {
     noremap = true,
     silent = true,
