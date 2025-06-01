@@ -171,7 +171,10 @@ function M.list_apps()
         lines[i] = base
       end
 
+      -- Make the buffer temporarily modifiable
+      vim.bo[buf].modifiable = true
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      vim.bo[buf].modifiable = false
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
       for i, app in ipairs(app_names) do
