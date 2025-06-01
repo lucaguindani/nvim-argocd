@@ -6,8 +6,35 @@ local config = {
   host = nil,
   token = nil,
 }
+local creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
 
 local logged_in = false
+
+local function save_credentials()
+  local creds = {
+    host = config.host,
+    token = config.token,
+  }
+  local f = io.open(creds_path, "w")
+  if f then
+    f:write(vim.fn.json_encode(creds))
+    f:close()
+  end
+end
+
+local function load_credentials()
+  local f = io.open(creds_path, "r")
+  if f then
+    local content = f:read("*a")
+    f:close()
+    local ok, creds = pcall(vim.fn.json_decode, content)
+    if ok and creds.host and creds.token then
+      config.host = creds.host
+      config.token = creds.token
+      logged_in = true
+    end
+  end
+end
 
 local function api_request(method, path, body)
   local curl = require("plenary.curl")
@@ -37,9 +64,21 @@ local function lazy_login(callback)
   end
 
   vim.ui.input({ prompt = "ArgoCD API Host (e.g. https://argocd.example.com): " }, function(host)
+    if not host or host == "" then
+      vim.notify("Host is required", vim.log.levels.ERROR)
+      return
+    end
     config.host = host
     vim.ui.input({ prompt = "Username: " }, function(user)
+      if not user or user == "" then
+        vim.notify("Username is required", vim.log.levels.ERROR)
+        return
+      end
       vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
+        if not pass or pass == "" then
+          vim.notify("Password is required", vim.log.levels.ERROR)
+          return
+        end
         local curl = require("plenary.curl")
         local res = curl.post(config.host .. "/api/v1/session", {
           body = vim.fn.json_encode({ username = user, password = pass }),
@@ -49,6 +88,7 @@ local function lazy_login(callback)
           local data = vim.fn.json_decode(res.body)
           config.token = data.token
           logged_in = true
+          save_credentials()
           vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
           callback()
         else
@@ -58,6 +98,9 @@ local function lazy_login(callback)
     end)
   end)
 end
+
+-- Load saved credentials on plugin load
+load_credentials()
 
 function M.list_apps()
   local res = api_request("get", "/api/v1/applications")
@@ -120,10 +163,6 @@ function M.sync_app(app_name)
   else
     vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
   end
-end
-
-function M.diff_app(app_name)
-  vim.notify("Diff API not supported directly. Use CLI fallback or Argo UI.", vim.log.levels.INFO)
 end
 
 function M.logs_app(app_name)
@@ -220,6 +259,25 @@ function M.telescope_apps()
   }):find()
 end
 
+function M.clear_credentials()
+  -- Clear in-memory config
+  config.host = nil
+  config.token = nil
+  logged_in = false
+
+  -- Delete the credentials file if it exists
+  local ok, err = os.remove(creds_path)
+  if ok then
+    vim.notify("ArgoCD credentials cleared", vim.log.levels.INFO)
+  else
+    if err then
+      vim.notify("Error clearing credentials: " .. err, vim.log.levels.ERROR)
+    else
+      vim.notify("No credentials file to delete", vim.log.levels.INFO)
+    end
+  end
+end
+
 function M.setup()
   vim.api.nvim_create_user_command("ArgoList", function()
     lazy_login(M.list_apps)
@@ -227,10 +285,6 @@ function M.setup()
 
   vim.api.nvim_create_user_command("ArgoSync", function(opts)
     lazy_login(function() M.sync_app(opts.args) end)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command("ArgoDiff", function(opts)
-    lazy_login(function() M.diff_app(opts.args) end)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("ArgoLogs", function(opts)
@@ -247,6 +301,10 @@ function M.setup()
 
   vim.api.nvim_create_user_command("ArgoPick", function()
     lazy_login(M.telescope_apps)
+  end, {})
+
+  vim.api.nvim_create_user_command("ArgoClearCreds", function()
+    M.clear_credentials()
   end, {})
 end
 
