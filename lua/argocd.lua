@@ -204,6 +204,9 @@ function M.list_apps()
   end
 
   vim.cmd("vsplit")
+  local total_cols = vim.o.columns
+  local quarter = math.floor(total_cols / 3)
+  vim.cmd("vertical resize " .. quarter)
   vim.cmd("enew")
   buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].filetype = "argocd"
