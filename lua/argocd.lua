@@ -201,6 +201,11 @@ function M.list_apps()
   buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].filetype = "argocd"
 
+  -- Disable orange highlight on line number for this buffer
+  vim.api.nvim_buf_call(buf, function()
+    vim.cmd("highlight CursorLineNr NONE")
+  end)
+
   vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
     noremap = true,
     silent = true,
