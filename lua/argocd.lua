@@ -163,25 +163,25 @@ function M.list_apps()
 
         -- Build line: status icon + space + app name [+ branch and sha if current line]
         local base = string.format("%s %s", status_icon, app.name)
-    
+
         if i == cursor_line then
           base = base .. string.format(" (%s %s)", app.branch, app.sha)
         end
-    
+
         lines[i] = base
       end
-    
+
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
       vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-    
+
       for i, app in ipairs(app_names) do
         -- Highlight status icon (1 char usually)
         vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
-    
+
         -- Highlight app name (starts at col 2)
         local name_start = 2
         vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
-    
+
         -- Highlight branch and sha on current line as comment
         if i == cursor_line then
           local comment_pos = lines[i]:find("%(")
@@ -216,7 +216,7 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── 🔹 Help Window ───────────────────────────────────────────────
+  -- ─── 🔹 Help Window (Bottom Aligned) ───────────────────────────────
   local help_buf = vim.api.nvim_create_buf(false, true)
   local help_lines = {
     " ArgoCD Keybindings ",
@@ -228,21 +228,26 @@ function M.list_apps()
     "Auto-refresh every 5s",
   }
   vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
-
-  local win_opts = {
-    relative = "editor",
-    width = 30,
+  
+  local main_win = vim.api.nvim_get_current_win()
+  local main_width = vim.api.nvim_win_get_width(main_win)
+  local main_height = vim.api.nvim_win_get_height(main_win)
+  
+  local help_win = vim.api.nvim_open_win(help_buf, false, {
+    relative = "win",
+    win = main_win,
+    anchor = "NW",
+    row = main_height,
+    col = 0,
+    width = main_width,
     height = #help_lines,
-    row = 2,
-    col = vim.o.columns - 32,
     style = "minimal",
     border = "rounded",
-  }
-
-  local help_win = vim.api.nvim_open_win(help_buf, false, win_opts)
+  })
+  
   vim.api.nvim_win_set_option(help_win, 'number', false)
   vim.api.nvim_win_set_option(help_win, 'relativenumber', false)
-
+  
   vim.api.nvim_buf_set_keymap(help_buf, "n", "q", "", {
     noremap = true,
     silent = true,
@@ -313,6 +318,9 @@ function M.list_apps()
         app_list_timer:stop()
         app_list_timer:close()
         app_list_timer = nil
+      end
+      if help_win and vim.api.nvim_win_is_valid(help_win) then
+        vim.api.nvim_win_close(help_win, true)
       end
     end,
   })
