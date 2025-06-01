@@ -39,6 +39,13 @@ local function load_credentials()
 end
 
 local function api_request(method, path, body)
+  if not config.host or not config.token then
+    return {
+      status = 401,
+      body = "Not logged in or missing host/token",
+    }
+  end
+
   local curl = require("plenary.curl")
   local url = config.host .. path
   local headers = {
