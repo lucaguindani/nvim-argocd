@@ -24,13 +24,22 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "lucaguindani/nvim-argocd",
-  config = function()
-    require("plugins.argocd").setup()
-  end,
   dependencies = {
     "nvim-lua/plenary.nvim",
-    "nvim-telescope/telescope.nvim", -- optional, for :ArgoPick
-  }
+    "nvim-telescope/telescope.nvim", -- optional but recommended
+  },
+  cmd = {
+    "ArgoList",
+    "ArgoSync",
+    "ArgoDiff",
+    "ArgoLogs",
+    "ArgoDelete",
+    "ArgoRollback",
+    "ArgoPick",
+  },
+  config = function()
+    require("argocd").setup()
+  end,
 }
 ```
 

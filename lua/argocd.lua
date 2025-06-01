@@ -18,6 +18,7 @@ local function api_request(method, path, body)
   }
 
   local options = {
+    url = url,
     method = method,
     headers = headers,
   }
@@ -26,7 +27,7 @@ local function api_request(method, path, body)
     options.body = vim.fn.json_encode(body)
   end
 
-  return curl.request(url, options)
+  return curl.request(options)
 end
 
 local function lazy_login(callback)
