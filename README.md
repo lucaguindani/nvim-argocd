@@ -25,8 +25,12 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "lucaguindani/nvim-argocd",
   config = function()
-    require("argocd").setup()
-  end
+    require("plugins.argocd").setup()
+  end,
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope.nvim", -- optional, for :ArgoPick
+  }
 }
 ```
 
@@ -59,7 +63,5 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ### Requirements
 
-- `argocd` CLI  
-- `kubectl`  
 - Neovim 0.7+ with Lua support  
 - Telescope.nvim for picker support (optional)
