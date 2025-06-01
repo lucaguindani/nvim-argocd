@@ -2,7 +2,6 @@
 -- ArgoCD Plugin for Neovim (Lazy.nvim compatible with Telescope support)
 
 local M = {}
-local devicons = require("nvim-web-devicons")
 local config = {
   host = nil,
   token = nil,
@@ -145,7 +144,7 @@ function M.list_apps()
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
 
       for i, app in ipairs(app_names) do
-        -- Get status icon and highlight group from devicons
+        -- Get status icon and highlight group
         local status_icon, status_hl
         if app.status == "Synced" then
           status_icon = status_icon or "✓"
