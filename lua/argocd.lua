@@ -371,7 +371,7 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
     vim.bo[edit_buf].bufhidden = "wipe"
     vim.bo[edit_buf].modifiable = true
 
-    local title = " ArgoCD Parameters "
+    local title = " " .. app.name .. " parameters "
     local width = math.max(50, #title + 4)
     local height = math.max(7, #param_lines + 2)
     local row = math.floor((vim.o.lines - height) / 2)
