@@ -246,11 +246,11 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Statusline Integration ───────────────────────────────
+  -- ─── Winbar Integration ───────────────────────────────
   vim.api.nvim_create_autocmd('BufEnter', {
     buffer = buf,
     callback = function()
-      vim.o.statusline = '%!luaeval("string.format(\'%s %s\', vim.fn.expand(\'%:t\'), \'Keys: s=Sync, u=Update, d=Delete\')")'
+      vim.wo.winbar = '%#Comment#Keys: s=Sync, u=Update, d=Delete'
     end
   })
 
@@ -258,7 +258,7 @@ function M.list_apps()
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.o.statusline = ''
+      vim.wo.winbar = ''
     end
   }) 
 
