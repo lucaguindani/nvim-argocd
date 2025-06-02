@@ -363,10 +363,6 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
       table.insert(param_lines, (p.name or "") .. "=" .. (p.value or ""))
     end
 
-    -- Add a title line at the top
-    local title = " Edit Parameters for " .. app.name .. " "
-    table.insert(param_lines, 1, title)
-
     -- Floating window for editing
     local edit_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
@@ -375,6 +371,7 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
     vim.bo[edit_buf].bufhidden = "wipe"
     vim.bo[edit_buf].modifiable = true
 
+    local title = " ArgoCD Parameters "
     local width = math.max(50, #title + 4)
     local height = math.max(7, #param_lines + 2)
     local row = math.floor((vim.o.lines - height) / 2)
@@ -387,37 +384,8 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
       height = height,
       style = "minimal",
       border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-      title = " ArgoCD Parameters ",
+      title = title,
       title_pos = "center",
-    })
-
-    -- Highlight the title line
-    vim.api.nvim_buf_add_highlight(edit_buf, -1, "Title", 0, 0, -1)
-
-    -- Prevent editing the title line
-    vim.api.nvim_buf_set_keymap(edit_buf, "n", "k", "", {
-      noremap = true,
-      silent = true,
-      callback = function()
-        local line = vim.api.nvim_win_get_cursor(0)[1]
-        if line == 1 then
-          vim.api.nvim_win_set_cursor(0, {2, 0})
-        else
-          vim.cmd("normal! k")
-        end
-      end,
-    })
-    vim.api.nvim_buf_set_keymap(edit_buf, "n", "j", "", {
-      noremap = true,
-      silent = true,
-      callback = function()
-        local line = vim.api.nvim_win_get_cursor(0)[1]
-        if line == 1 then
-          vim.api.nvim_win_set_cursor(0, {2, 0})
-        else
-          vim.cmd("normal! j")
-        end
-      end,
     })
 
     -- Save handler: <CR> in normal mode
@@ -425,7 +393,7 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
       noremap = true,
       silent = true,
       callback = function()
-        local lines = vim.api.nvim_buf_get_lines(edit_buf, 1, -1, false)
+        local lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, false)
         local new_params = {}
         for _, line in ipairs(lines) do
           local k, v = line:match("^([^=]+)=(.*)$")
@@ -465,8 +433,8 @@ vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
       end,
     })
 
-    -- Move cursor to first editable line
-    vim.api.nvim_win_set_cursor(win, {2, 0})
+    -- Move cursor to first line
+    vim.api.nvim_win_set_cursor(win, {1, 0})
   end,
 })
 
