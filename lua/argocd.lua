@@ -250,9 +250,7 @@ function M.list_apps()
   vim.api.nvim_create_autocmd('BufEnter', {
     buffer = buf,
     callback = function()
-      vim.o.statusline = '%<%f\ %h%m%r%=%l,%c%v\ %P\ %{' .. vim.fn.json_encode({
-        "Keys: s=Sync, u=Update, d=Delete"
-      }) .. '}%#Comment#'
+      vim.o.statusline = '%!luaeval("string.format(\'%s %s\', vim.fn.expand(\'%:t\'), \'Keys: s=Sync, u=Update, d=Delete\')")'
     end
   })
 
