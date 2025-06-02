@@ -308,15 +308,7 @@ function M.list_apps()
       local app_data = vim.fn.json_decode(res.body)
       local app_status = app_data.status.sync.status or "Unknown"
       if app_status ~= "Synced" then
-        vim.ui.select({"No", "Yes"}, {
-          prompt = "Sync app '" .. app.name .. "' now?",
-        }, function(choice)
-          if choice == "Yes" then
-            M.sync_app(app.name)
-          else
-            vim.notify("Sync cancelled", vim.log.levels.INFO)
-          end
-        end)
+        M.sync_app(app.name)
       else
         vim.notify(app.name .. " is already synced.", vim.log.levels.INFO)
       end
@@ -473,12 +465,20 @@ function M.sync_app(app_name)
     vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
     return
   end
-  local res = api_request("post", "/api/v1/applications/" .. app_name .. "/sync")
-  if res.status == 200 then
-    vim.notify("Sync triggered for " .. app_name, vim.log.levels.INFO)
-  else
-    vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
-  end
+  vim.ui.select({"No", "Yes"}, {
+    prompt = "Are you sure you want to sync " .. app_name .. "?",
+  }, function(choice)
+    if choice == "Yes" then
+      local res = api_request("post", "/api/v1/applications/" .. app_name .. "/sync")
+      if res.status == 200 then
+        vim.notify("Sync triggered for " .. app_name, vim.log.levels.INFO)
+      else
+        vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
+      end
+    else
+      vim.notify("Sync cancelled", vim.log.levels.INFO)
+    end
+  end)
 end
 
 function M.delete_app(app_name)
@@ -496,6 +496,8 @@ function M.delete_app(app_name)
       else
         vim.notify("Delete failed: " .. res.body, vim.log.levels.ERROR)
       end
+    else
+      vim.notify("Delete cancelled", vim.log.levels.INFO)
     end
   end)
 end
