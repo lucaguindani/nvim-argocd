@@ -413,7 +413,7 @@ function M.list_apps()
             url = config.host .. "/api/v1/applications/" .. app.name,
             method = "PATCH",
             headers = {
-              ["Content-Type"] = "application/merge-patch+json",
+              ["Content-Type"] = "application/json",
               ["Authorization"] = "Bearer " .. config.token,
             },
             body = vim.fn.json_encode(patch),
