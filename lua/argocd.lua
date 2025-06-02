@@ -412,6 +412,10 @@ function M.update_app(app_name)
 end
 
 function M.sync_app(app_name)
+  if not app_name or app_name == "" then
+    vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
+    return
+  end
   local res = api_request("get", "/api/v1/applications/" .. app_name)
   if res.status ~= 200 then
     vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
@@ -419,11 +423,7 @@ function M.sync_app(app_name)
   end
   local app_data = vim.fn.json_decode(res.body)
   local app_status = app_data.status.sync.status or "Unknown"
-  if app_status ~= "Synced" then
-    if not app_name or app_name == "" then
-      vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
-      return
-    end
+  if app_status ~= "Synced" then 
     vim.ui.select({"No", "Yes"}, {
       prompt = "Are you sure you want to sync " .. app_name .. "?",
     }, function(choice)
