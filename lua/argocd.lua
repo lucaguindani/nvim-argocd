@@ -247,19 +247,19 @@ function M.list_apps()
   end)
 
   -- ─── Keybindings ───────────────────────────────
-  local keybindings = {
-    "Keys: s=Sync, u=Update, d=Delete",
-  }
-
-  -- Set keybindings text at the top of the buffer
-  vim.api.nvim_buf_set_lines(buf, 0, 0, false, keybindings)
-  vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 0, 0, -1)
+  local ns = vim.api.nvim_create_namespace('argocd_keybindings')
+  vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {
+    virt_text = {
+      { "Keys: s=Sync, u=Update, d=Delete", "Comment" }
+    },
+    virt_text_pos = 'overlay'
+  })
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.api.nvim_buf_set_lines(buf, 0, 0, false, {""})
+      vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
     end
   }) 
 
