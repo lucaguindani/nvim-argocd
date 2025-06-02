@@ -399,24 +399,27 @@ function M.list_apps()
             end
           end
           -- Patch app with new parameters
-          local patch = {
-            spec = {
-              source = {
-                helm = {
-                  parameters = new_params
+          local patch_body = {
+            name = app.name,
+            patch = vim.fn.json_encode({
+              spec = {
+                source = {
+                  helm = {
+                    parameters = new_params
+                  }
                 }
               }
-            }
+            }),
+            patchType = "merge"
           }
-          local curl = require("plenary.curl")
           local patch_res = curl.request({
-            url = config.host .. "/api/v1/applications/" .. app.name .. "?patchType=merge",
+            url = config.host .. "/api/v1/applications/" .. app.name,
             method = "PATCH",
             headers = {
               ["Content-Type"] = "application/json",
               ["Authorization"] = "Bearer " .. config.token,
             },
-            body = vim.fn.json_encode(patch),
+            body = vim.fn.json_encode(patch_body),
           })
           if patch_res.status == 200 then
             vim.notify("Parameters updated for " .. app.name, vim.log.levels.INFO)
