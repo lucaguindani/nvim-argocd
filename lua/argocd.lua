@@ -255,8 +255,6 @@ function M.list_apps()
     "u   → Update project",
     "d   → Delete project",
     "q   → Close help",
-    "",
-    "Auto-refresh every 5s",
   }
   vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
 
