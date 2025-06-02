@@ -38,19 +38,18 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 | Command           | Description                            |
 |-------------------|------------------------------------|
-| `:ArgoList`       | List all ArgoCD apps                 |
-| `:ArgoSync <app>` | Sync the specified app               |
-| `:ArgoDelete <app>` | Delete app with confirmation prompt |
-| `:ArgoPick`       | Telescope picker for interactive app selection and actions |
+| `:ArgoList`       | List all apps                 |
+| `:ArgoSync <app>` | Sync a specific app               |
+| `:ArgoDelete <app>` | Delete a specific app |
+| `:ArgoPick`       | Telescope picker for app selection and actions |
 | `:ArgoLogout` | Clear credentials |
 
 
-### Telescope Picker Keybindings (insert mode)
+### Telescope picker keybindings
 
 | Keys    | Action       |
 |---------|--------------|
 | `<CR>`  | Sync app     |
 | `<C-s>` | Sync app     |
-| `<C-l>` | Show logs    |
-| `<C-x>` | Delete app   |
+| `<C-d>` | Delete app   |
 

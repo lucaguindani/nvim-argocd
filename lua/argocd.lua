@@ -431,7 +431,7 @@ function M.telescope_apps()
           M.sync_app(selection[1])
         end
       end)
-      map('i', '<C-x>', function()
+      map('i', '<C-d>', function()
         local selection = action_state.get_selected_entry()
         if selection and selection[1] then
           M.delete_app(selection[1])
