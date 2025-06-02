@@ -338,99 +338,113 @@ function M.list_apps()
   })
 
   vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
-    noremap = true,
-    silent = true,
-    callback = function()
-      local line_nr = vim.api.nvim_win_get_cursor(0)[1]
-      local app = app_names[line_nr]
-      if not app then return end
+    local param_lines = {}
+for _, p in ipairs(params) do
+  table.insert(param_lines, (p.name or "") .. "=" .. (p.value or ""))
+end
 
-      -- Fetch full app data
-      local res = api_request("get", "/api/v1/applications/" .. app.name)
-      if res.status ~= 200 then
-        vim.notify("Failed to fetch app: " .. res.body, vim.log.levels.ERROR)
-        return
+-- Add a title line at the top
+local title = " Edit Parameters for " .. app.name .. " "
+table.insert(param_lines, 1, title)
+
+-- Floating window for editing
+local edit_buf = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
+vim.bo[edit_buf].filetype = "argocdparams"
+vim.bo[edit_buf].buftype = "acwrite"
+vim.bo[edit_buf].bufhidden = "wipe"
+vim.bo[edit_buf].modifiable = true
+
+local width = math.max(50, #title + 4)
+local height = math.max(7, #param_lines + 2)
+local row = math.floor((vim.o.lines - height) / 2)
+local col = math.floor((vim.o.columns - width) / 2)
+local win = vim.api.nvim_open_win(edit_buf, true, {
+  relative = "editor",
+  row = row,
+  col = col,
+  width = width,
+  height = height,
+  style = "minimal",
+  border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+  title = " ArgoCD Parameters ",
+  title_pos = "center",
+})
+
+-- Make the title line readonly and highlight it
+vim.api.nvim_buf_add_highlight(edit_buf, -1, "Title", 0, 0, -1)
+vim.api.nvim_buf_set_keymap(edit_buf, "n", "k", "", {
+  noremap = true,
+  silent = true,
+  callback = function()
+    local line = vim.api.nvim_win_get_cursor(0)[1]
+    if line == 1 then
+      vim.api.nvim_win_set_cursor(0, {2, 0})
+    else
+      vim.cmd("normal! k")
+    end
+  end,
+})
+vim.api.nvim_buf_set_keymap(edit_buf, "n", "j", "", {
+  noremap = true,
+  silent = true,
+  callback = function()
+    local line = vim.api.nvim_win_get_cursor(0)[1]
+    if line == 1 then
+      vim.api.nvim_win_set_cursor(0, {2, 0})
+    else
+      vim.cmd("normal! j")
+    end
+  end,
+})
+
+-- Save handler: <CR> in normal mode
+vim.api.nvim_buf_set_keymap(edit_buf, "n", "<CR>", "", {
+  noremap = true,
+  silent = true,
+  callback = function()
+    local lines = vim.api.nvim_buf_get_lines(edit_buf, 1, -1, false)
+    local new_params = {}
+    for _, line in ipairs(lines) do
+      local k, v = line:match("^([^=]+)=(.*)$")
+      if k then
+        table.insert(new_params, { name = k, value = v })
       end
-      local app_data = vim.fn.json_decode(res.body)
-      local params = {}
-      if app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters then
-        params = app_data.spec.source.helm.parameters
-      end
-
-      -- Prepare editable lines: key=value
-      local param_lines = {}
-      for _, p in ipairs(params) do
-        table.insert(param_lines, (p.name or "") .. "=" .. (p.value or ""))
-      end
-
-      -- Floating window for editing
-      local edit_buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
-      vim.bo[edit_buf].filetype = "argocdparams"
-      vim.bo[edit_buf].buftype = "acwrite"
-      vim.bo[edit_buf].bufhidden = "wipe"
-      vim.bo[edit_buf].modifiable = true
-
-      local width = 50
-      local height = math.max(5, #param_lines + 2)
-      local row = math.floor((vim.o.lines - height) / 2)
-      local col = math.floor((vim.o.columns - width) / 2)
-      local win = vim.api.nvim_open_win(edit_buf, true, {
-        relative = "editor",
-        row = row,
-        col = col,
-        width = width,
-        height = height,
-        style = "minimal",
-        border = "rounded",
-      })
-
-      -- Save handler: <CR> in normal mode
-      vim.api.nvim_buf_set_keymap(edit_buf, "n", "<CR>", "", {
-        noremap = true,
-        silent = true,
-        callback = function()
-          local lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, false)
-          local new_params = {}
-          for _, line in ipairs(lines) do
-            local k, v = line:match("^([^=]+)=(.*)$")
-            if k then
-              table.insert(new_params, { name = k, value = v })
-            end
-          end
-          -- Patch app with new parameters
-          local patch_body = {
-            name = app.name,
-            patch = vim.fn.json_encode({
-              spec = {
-                source = {
-                  helm = {
-                    parameters = new_params
-                  }
-                }
-              }
-            }),
-            patchType = "merge"
+    end
+    local patch_body = {
+      name = app.name,
+      patch = vim.fn.json_encode({
+        spec = {
+          source = {
+            helm = {
+              parameters = new_params
+            }
           }
-          local res = api_request("patch", "/api/v1/applications/" .. app.name, patch_body)
-          if res.status == 200 then
-            vim.notify("Parameters updated for " .. app.name, vim.log.levels.INFO)
-            vim.api.nvim_win_close(win, true)
-          else
-            vim.notify("Update failed: " .. res.body, vim.log.levels.ERROR)
-          end
-        end,
-      })
+        }
+      }),
+      patchType = "merge"
+    }
+    local res = api_request("patch", "/api/v1/applications/" .. app.name, patch_body)
+    if res.status == 200 then
+      vim.notify("Parameters updated for " .. app.name, vim.log.levels.INFO)
+      vim.api.nvim_win_close(win, true)
+    else
+      vim.notify("Update failed: " .. res.body, vim.log.levels.ERROR)
+    end
+  end,
+})
 
-      -- Quit handler: q
-      vim.api.nvim_buf_set_keymap(edit_buf, "n", "q", "", {
-        noremap = true,
-        silent = true,
-        callback = function()
-          vim.api.nvim_win_close(win, true)
-        end,
-      })
-    end,
+-- Quit handler: q
+vim.api.nvim_buf_set_keymap(edit_buf, "n", "q", "", {
+  noremap = true,
+  silent = true,
+  callback = function()
+    vim.api.nvim_win_close(win, true)
+  end,
+})
+
+-- Move cursor to first editable line
+vim.api.nvim_win_set_cursor(win, {2, 0})
   })
 
   fetch_and_draw()
