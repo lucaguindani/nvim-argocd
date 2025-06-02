@@ -408,7 +408,16 @@ function M.list_apps()
               }
             }
           }
-          local patch_res = api_request("put", "/api/v1/applications/" .. app.name, patch)
+          local curl = require("plenary.curl")
+          local patch_res = curl.request({
+            url = config.host .. "/api/v1/applications/" .. app.name,
+            method = "PATCH",
+            headers = {
+              ["Content-Type"] = "application/merge-patch+json",
+              ["Authorization"] = "Bearer " .. config.token,
+            },
+            body = vim.fn.json_encode(patch),
+          })
           if patch_res.status == 200 then
             vim.notify("Parameters updated for " .. app.name, vim.log.levels.INFO)
             vim.api.nvim_win_close(win, true)
