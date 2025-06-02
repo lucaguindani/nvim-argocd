@@ -299,19 +299,7 @@ function M.list_apps()
       local line_nr = vim.api.nvim_win_get_cursor(0)[1]
       local app = app_names[line_nr]
       if not app then return end
-
-      local res = api_request("get", "/api/v1/applications/" .. app.name)
-      if res.status ~= 200 then
-        vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
-        return
-      end
-      local app_data = vim.fn.json_decode(res.body)
-      local app_status = app_data.status.sync.status or "Unknown"
-      if app_status ~= "Synced" then
-        M.sync_app(app.name)
-      else
-        vim.notify(app.name .. " is already synced.", vim.log.levels.INFO)
-      end
+      M.sync_app(app.name)   
     end,
   })
 
@@ -461,24 +449,35 @@ function M.update_app(app_name)
 end
 
 function M.sync_app(app_name)
-  if not app_name or app_name == "" then
-    vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
+  local res = api_request("get", "/api/v1/applications/" .. app_name)
+  if res.status ~= 200 then
+    vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
     return
   end
-  vim.ui.select({"No", "Yes"}, {
-    prompt = "Are you sure you want to sync " .. app_name .. "?",
-  }, function(choice)
-    if choice == "Yes" then
-      local res = api_request("post", "/api/v1/applications/" .. app_name .. "/sync")
-      if res.status == 200 then
-        vim.notify("Sync triggered for " .. app_name, vim.log.levels.INFO)
-      else
-        vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
-      end
-    else
-      vim.notify("Sync cancelled", vim.log.levels.INFO)
+  local app_data = vim.fn.json_decode(res.body)
+  local app_status = app_data.status.sync.status or "Unknown"
+  if app_status ~= "Synced" then
+    if not app_name or app_name == "" then
+      vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
+      return
     end
-  end)
+    vim.ui.select({"No", "Yes"}, {
+      prompt = "Are you sure you want to sync " .. app_name .. "?",
+    }, function(choice)
+      if choice == "Yes" then
+        local res = api_request("post", "/api/v1/applications/" .. app_name .. "/sync")
+        if res.status == 200 then
+          vim.notify("Sync triggered for " .. app_name, vim.log.levels.INFO)
+        else
+          vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
+        end
+      else
+        vim.notify("Sync cancelled", vim.log.levels.INFO)
+      end
+    end)
+  else
+    vim.notify(app_name .. " is already synced.", vim.log.levels.INFO)
+  end 
 end
 
 function M.delete_app(app_name)
