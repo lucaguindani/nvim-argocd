@@ -247,20 +247,20 @@ function M.list_apps()
   end)
 
   -- ─── Statusline Integration ───────────────────────────────
-  local statusline = vim.api.nvim_create_namespace('argocd_statusline')
-  vim.api.nvim_buf_set_extmark(buf, statusline, 0, 0, {
-    virt_text = {
-      { " Keybindings: s=Sync, u=Update, d=Delete, q=Quit ", "Comment" }
-    },
-    virt_text_pos = 'overlay',
-    hl_mode = 'combine',
+  vim.api.nvim_create_autocmd('BufEnter', {
+    buffer = buf,
+    callback = function()
+      vim.o.statusline = '%<%f\ %h%m%r%=%l,%c%v\ %P\ %{' .. vim.fn.json_encode({
+        "Keys: s=Sync, u=Update, d=Delete"
+      }) .. '}%#Comment#'
+    end
   })
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.api.nvim_buf_clear_namespace(buf, statusline, 0, -1)
+      vim.o.statusline = ''
     end
   }) 
 
