@@ -247,19 +247,14 @@ function M.list_apps()
   end)
 
   -- ─── Keybindings ───────────────────────────────
-  local ns = vim.api.nvim_create_namespace('argocd_keybindings')
-  vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {
-    virt_text = {
-      { "Keys: s=Sync, u=Update, d=Delete", "Comment" }
-    },
-    virt_text_pos = 'overlay'
-  })
+  -- Set keybindings in command line
+  vim.api.nvim_command('echohl Comment | echo "Keys: s=Sync, u=Update, d=Delete" | echohl NONE')
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+      vim.api.nvim_command('echohl NONE')
     end
   }) 
 
