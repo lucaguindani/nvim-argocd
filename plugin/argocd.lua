@@ -29,6 +29,10 @@ vim.api.nvim_create_user_command("ArgoDelete", function(opts)
   argocd.lazy_login(function() argocd.delete_app(opts.args) end)
 end, { nargs = 1 })
 
+vim.api.nvim_create_user_command("ArgoUpdate", function(opts)
+  argocd.lazy_login(function() argocd.update_app(opts.args) end)
+end, { nargs = 1 })
+
 vim.api.nvim_create_user_command("ArgoPick", function()
   argocd.lazy_login(argocd.telescope_apps)
 end, {})

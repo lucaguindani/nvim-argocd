@@ -252,10 +252,9 @@ function M.list_apps()
     " Keybindings ",
     "---------------------",
     "s   → Sync project",
+    "u   → Update project",
     "d   → Delete project",
     "q   → Close help",
-    "",
-    "Auto-refresh every 5s",
   }
   vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
 
@@ -329,10 +328,22 @@ function M.list_apps()
     noremap = true,
     silent = true,
     callback = function()
-      local line_nr = vim.api.nvim_win_get_cursor(0)[1]
+    local line_nr = vim.api.nvim_win_get_cursor(0)[1]
       local app = app_names[line_nr]
       if not app then return end
       M.delete_app(app.name)
+    end,
+  })
+
+  -- Set key to update the project under cursor
+  vim.api.nvim_buf_set_keymap(buf, "n", "u", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local line_nr = vim.api.nvim_win_get_cursor(0)[1]
+      local app = app_names[line_nr]
+      if not app then return end
+      M.update_app(app.name)
     end,
   })
 
@@ -357,6 +368,104 @@ function M.list_apps()
       end
     end,
   })
+end
+
+function M.update_app(app_name)
+  if not app_name or app_name == "" then
+    vim.notify("Usage: :ArgoUpdate <app-name>", vim.log.levels.WARN)
+    return
+  end
+
+  -- Fetch full app data
+  local res = api_request("get", "/api/v1/applications/" .. app_name)
+  if res.status ~= 200 then
+    vim.notify("Failed to fetch app: " .. res.body, vim.log.levels.ERROR)
+    return
+  end
+  local app_data = vim.fn.json_decode(res.body)
+  local params = {}
+  if app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters then
+    params = app_data.spec.source.helm.parameters
+  end
+
+  -- Prepare editable lines: key=value
+  local param_lines = {}
+  for _, p in ipairs(params) do
+    table.insert(param_lines, (p.name or "") .. "=" .. (p.value or ""))
+  end
+
+  -- Floating window for editing
+  local edit_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
+  vim.bo[edit_buf].filetype = "argocdparams"
+  vim.bo[edit_buf].buftype = "acwrite"
+  vim.bo[edit_buf].bufhidden = "wipe"
+  vim.bo[edit_buf].modifiable = true
+
+  local title = " Edit " .. app_name .. " parameters "
+  local width = math.max(50, #title + 4)
+  local height = math.max(7, #param_lines + 2)
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+  local win = vim.api.nvim_open_win(edit_buf, true, {
+    relative = "editor",
+    row = row,
+    col = col,
+    width = width,
+    height = height,
+    style = "minimal",
+    border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+    title = title,
+    title_pos = "center",
+  })
+
+  -- Save handler: <CR> in normal mode
+  vim.api.nvim_buf_set_keymap(edit_buf, "n", "<CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, false)
+      local new_params = {}
+      for _, line in ipairs(lines) do
+        local k, v = line:match("^([^=]+)=(.*)$")
+        if k then
+          table.insert(new_params, { name = k, value = v })
+        end
+      end
+      local patch_body = {
+        name = app_name,
+        patch = vim.fn.json_encode({
+          spec = {
+            source = {
+              helm = {
+                parameters = new_params
+              }
+            }
+          }
+        }),
+        patchType = "merge"
+      }
+      local patch_res = api_request("patch", "/api/v1/applications/" .. app_name, patch_body)
+      if patch_res.status == 200 then
+        vim.notify("Parameters updated for " .. app_name, vim.log.levels.INFO)
+        vim.api.nvim_win_close(win, true)
+      else
+        vim.notify("Update failed: " .. patch_res.body, vim.log.levels.ERROR)
+      end
+    end,
+  })
+
+  -- Quit handler: q
+  vim.api.nvim_buf_set_keymap(edit_buf, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      vim.api.nvim_win_close(win, true)
+    end,
+  })
+
+  -- Move cursor to first line
+  vim.api.nvim_win_set_cursor(win, {1, 0})
 end
 
 function M.sync_app(app_name)
