@@ -246,9 +246,8 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Keybindings ───────────────────────────────
   -- Set keybindings in command line
-  vim.api.nvim_command('echohl Comment | echo "Keys: s=Sync, u=Update, d=Delete" | echohl NONE')
+  vim.api.nvim_command('echohl Comment | echo "s=Sync, u=Update, d=Delete" | echohl NONE')
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
