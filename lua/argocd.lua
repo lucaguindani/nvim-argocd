@@ -246,50 +246,23 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Help Window (Bottom Aligned) ───────────────────────────────
-  local help_buf = vim.api.nvim_create_buf(false, true)
-  local help_lines = {
-    " Keybindings ",
-    "---------------------",
-    "s   → Sync project",
-    "u   → Update project",
-    "d   → Delete project",
-    "q   → Close help",
-  }
-  vim.api.nvim_buf_set_lines(help_buf, 0, -1, false, help_lines)
-
-  local main_win = vim.api.nvim_get_current_win()
-  local main_width = vim.api.nvim_win_get_width(main_win)
-  local main_height = vim.api.nvim_win_get_height(main_win)
-
-  local help_width = math.floor(main_width / 2)
-  local help_height = #help_lines
-
-  local help_win = vim.api.nvim_open_win(help_buf, false, {
-    relative = "win",
-    win = main_win,
-    anchor = "NW",
-    row = main_height - help_height - 2,
-    col = main_width - help_width,
-    width = help_width,
-    height = help_height,
-    style = "minimal",
-    border = "rounded",
+  -- ─── Statusline Integration ───────────────────────────────
+  local statusline = vim.api.nvim_create_namespace('argocd_statusline')
+  vim.api.nvim_buf_set_extmark(buf, statusline, 0, 0, {
+    virt_text = {
+      { " Keybindings: s=Sync, u=Update, d=Delete, q=Quit ", "Comment" }
+    },
+    virt_text_pos = 'overlay',
+    hl_mode = 'combine',
   })
 
-  vim.api.nvim_win_set_option(help_win, 'number', false)
-  vim.api.nvim_win_set_option(help_win, 'relativenumber', false)
-
-  vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
-    noremap = true,
-    silent = true,
+  -- Cleanup function when buffer is closed
+  vim.api.nvim_create_autocmd('BufUnload', {
+    buffer = buf,
     callback = function()
-      if help_win and vim.api.nvim_win_is_valid(help_win) then
-        vim.api.nvim_win_close(help_win, true)
-      end
-    end,
-  })
-  -- ─────────────────────────────────────────────────────────────────
+      vim.api.nvim_buf_clear_namespace(buf, statusline, 0, -1)
+    end
+  }) 
 
   -- Set key to sync the project under cursor
   vim.api.nvim_buf_set_keymap(buf, "n", "s", "", {
@@ -342,10 +315,7 @@ function M.list_apps()
         app_list_timer:stop()
         app_list_timer:close()
         app_list_timer = nil
-      end
-      if help_win and vim.api.nvim_win_is_valid(help_win) then
-        vim.api.nvim_win_close(help_win, true)
-      end
+      end 
     end,
   })
 end
