@@ -402,7 +402,7 @@ function M.update_app(app_name)
   vim.bo[edit_buf].bufhidden = "wipe"
   vim.bo[edit_buf].modifiable = true
 
-  local title = "Edit " .. app_name .. " parameters "
+  local title = " Edit " .. app_name .. " parameters "
   local width = math.max(50, #title + 4)
   local height = math.max(7, #param_lines + 2)
   local row = math.floor((vim.o.lines - height) / 2)
