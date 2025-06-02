@@ -412,20 +412,12 @@ function M.list_apps()
             }),
             patchType = "merge"
           }
-          local patch_res = curl.request({
-            url = config.host .. "/api/v1/applications/" .. app.name,
-            method = "PATCH",
-            headers = {
-              ["Content-Type"] = "application/json",
-              ["Authorization"] = "Bearer " .. config.token,
-            },
-            body = vim.fn.json_encode(patch_body),
-          })
-          if patch_res.status == 200 then
+          local res = api_request("patch", "/api/v1/applications/" .. app.name, patch_body)
+          if res.status == 200 then
             vim.notify("Parameters updated for " .. app.name, vim.log.levels.INFO)
             vim.api.nvim_win_close(win, true)
           else
-            vim.notify("Update failed: " .. patch_res.body, vim.log.levels.ERROR)
+            vim.notify("Update failed: " .. res.body, vim.log.levels.ERROR)
           end
         end,
       })
