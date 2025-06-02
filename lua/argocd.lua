@@ -246,20 +246,24 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Virtual Text Integration ───────────────────────────────
-  local ns = vim.api.nvim_create_namespace('argocd_keys')
-  vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {
-    virt_text = {
-      { "Keys: s=Sync, u=Update, d=Delete", "Comment" }
-    },
-    virt_text_pos = 'overlay'
+  -- ─── Buffer-local Keybindings ───────────────────────────────
+  vim.api.nvim_buf_set_var(buf, 'argocd_keybindings', 'Keys: s=Sync, u=Update, d=Delete')
+
+  -- Set up keybindings display
+  vim.api.nvim_create_autocmd('BufEnter', {
+    buffer = buf,
+    callback = function()
+      vim.api.nvim_buf_call(buf, function()
+        vim.cmd('echohl Comment | echo "' .. vim.api.nvim_buf_get_var(buf, 'argocd_keybindings') .. '" | echohl NONE')
+      end)
+    end
   })
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+      vim.api.nvim_buf_del_var(buf, 'argocd_keybindings')
     end
   }) 
 
