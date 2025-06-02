@@ -410,7 +410,7 @@ function M.list_apps()
           }
           local curl = require("plenary.curl")
           local patch_res = curl.request({
-            url = config.host .. "/api/v1/applications/" .. app.name,
+            url = config.host .. "/api/v1/applications/" .. app.name .. "?patchType=merge",
             method = "PATCH",
             headers = {
               ["Content-Type"] = "application/json",
