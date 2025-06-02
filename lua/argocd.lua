@@ -246,27 +246,20 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Sign Column Keybindings ───────────────────────────────
+  -- ─── Keybindings ───────────────────────────────
   local keybindings = {
     "Keys: s=Sync, u=Update, d=Delete",
   }
 
-  -- Create sign group
-  vim.fn.sign_define('argocd_keybindings', {
-    text = 'Keys: s=Sync, u=Update, d=Delete',
-    texthl = 'Comment',
-  })
-
-  -- Place sign at the top of the buffer
-  vim.fn.sign_place(0, 'argocd_keybindings', 'argocd_keybindings', buf, {
-    lnum = 1,
-  })
+  -- Set keybindings text at the top of the buffer
+  vim.api.nvim_buf_set_lines(buf, 0, 0, false, keybindings)
+  vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 0, 0, -1)
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.fn.sign_unplace('argocd_keybindings', { buffer = buf })
+      vim.api.nvim_buf_set_lines(buf, 0, 0, false, {""})
     end
   }) 
 
