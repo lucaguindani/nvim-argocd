@@ -246,19 +246,20 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- ─── Winbar Integration ───────────────────────────────
-  vim.api.nvim_create_autocmd('BufEnter', {
-    buffer = buf,
-    callback = function()
-      vim.wo.winbar = '%#Comment#Keys: s=Sync, u=Update, d=Delete'
-    end
+  -- ─── Virtual Text Integration ───────────────────────────────
+  local ns = vim.api.nvim_create_namespace('argocd_keys')
+  vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {
+    virt_text = {
+      { "Keys: s=Sync, u=Update, d=Delete", "Comment" }
+    },
+    virt_text_pos = 'overlay'
   })
 
   -- Cleanup function when buffer is closed
   vim.api.nvim_create_autocmd('BufUnload', {
     buffer = buf,
     callback = function()
-      vim.wo.winbar = ''
+      vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
     end
   }) 
 
