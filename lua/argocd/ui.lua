@@ -139,21 +139,28 @@ end
 
 local app_list_timer = nil
 function M.list_apps()
-  -- Initialize local variables
-  local buf, win_id, app_names
-  local err
-
-  -- Create floating window for app list
-  buf, win_id = M.create_app_list_window()
-  if not buf or not win_id then
-    vim.notify("Failed to create floating window", vim.log.levels.ERROR)
-    return nil
+  -- Get applications from API
+  local apps, err = require("argocd.api").list_apps()
+  if not apps then
+    vim.notify("Failed to list applications: " .. err, vim.log.levels.ERROR)
+    return
   end
 
-  -- Get applications using API
-  app_names, err = api.get_applications()
-  if not app_names then
-    vim.notify(err or "Failed to get applications", vim.log.levels.ERROR)
+  -- Format apps for display
+  local app_lines = {}
+  for _, app in ipairs(apps) do
+    table.insert(app_lines, string.format("%-30s %s", app.metadata.name, app.status.sync.status))
+  end
+
+  -- Create floating window for app list
+  local buf, win_id = M.create_app_list_window()
+  if not buf or not win_id then
+    vim.notify("Failed to create floating window", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Display apps in buffer
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, app_lines)
     vim.api.nvim_win_close(win_id, true)
     return nil
   end
