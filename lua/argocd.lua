@@ -360,6 +360,8 @@ function M.update_app(app_name)
     border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
     title = title,
     title_pos = "center",
+    footer = { " <CR> to save, q to quit " },
+    footer_pos = "center",
   })
 
   -- Save handler: <CR> in normal mode
