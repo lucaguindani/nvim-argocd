@@ -15,31 +15,56 @@ end
 -- Check if plenary is installed
 local plenary_ok, _ = pcall(require, "plenary")
 if not plenary_ok then
-  vim.notify("[argocd.nvim] requires plenary", vim.log.levels.warn)
+  vim.notify("[argocd.nvim] requires plenary", vim.log.levels.ERROR)
   return
 end
 
 -- Set up the plugin with default commands
 vim.api.nvim_create_user_command("ArgoList", function()
-  argocd.lazy_login(argocd.list_apps)
+  if not argocd.is_logged_in() then
+    vim.notify("[argocd.nvim] Not logged in. Please login first.", vim.log.levels.ERROR)
+    return
+  end
+  argocd.list_apps()
 end, {})
 
 vim.api.nvim_create_user_command("ArgoSync", function(opts)
-  argocd.lazy_login(function() argocd.sync_app(opts.args) end)
+  if not argocd.is_logged_in() then
+    vim.notify("[argocd.nvim] Not logged in. Please login first.", vim.log.levels.ERROR)
+    return
+  end
+  argocd.sync_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoDelete", function(opts)
-  argocd.lazy_login(function() argocd.delete_app(opts.args) end)
+  if not argocd.is_logged_in() then
+    vim.notify("[argocd.nvim] Not logged in. Please login first.", vim.log.levels.ERROR)
+    return
+  end
+  argocd.delete_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoUpdate", function(opts)
-  argocd.lazy_login(function() argocd.update_app(opts.args) end)
+  if not argocd.is_logged_in() then
+    vim.notify("[argocd.nvim] Not logged in. Please login first.", vim.log.levels.ERROR)
+    return
+  end
+  argocd.update_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoPick", function()
-  argocd.lazy_login(argocd.telescope_apps)
+  if not argocd.is_logged_in() then
+    vim.notify("[argocd.nvim] Not logged in. Please login first.", vim.log.levels.ERROR)
+    return
+  end
+  argocd.telescope_apps()
 end, {})
 
 vim.api.nvim_create_user_command("ArgoLogout", function()
   argocd.clear_credentials()
+end, {})
+
+-- Add login command
+vim.api.nvim_create_user_command("ArgoLogin", function()
+  argocd.login()
 end, {})
