@@ -246,17 +246,6 @@ function M.list_apps()
     vim.cmd("highlight CursorLineNr NONE")
   end)
 
-  -- Set keybindings in command line
-  vim.api.nvim_command('echohl Comment | echo "s=Sync, u=Update, d=Delete" | echohl NONE')
-
-  -- Cleanup function when buffer is closed
-  vim.api.nvim_create_autocmd('BufUnload', {
-    buffer = buf,
-    callback = function()
-      vim.api.nvim_command('echohl NONE')
-    end
-  }) 
-
   -- Set key to sync the project under cursor
   vim.api.nvim_buf_set_keymap(buf, "n", "s", "", {
     noremap = true,
@@ -265,7 +254,7 @@ function M.list_apps()
       local line_nr = vim.api.nvim_win_get_cursor(0)[1]
       local app = app_names[line_nr]
       if not app then return end
-      M.sync_app(app.name)   
+      M.sync_app(app.name)
     end,
   })
 
@@ -308,7 +297,7 @@ function M.list_apps()
         app_list_timer:stop()
         app_list_timer:close()
         app_list_timer = nil
-      end 
+      end
     end,
   })
 end
