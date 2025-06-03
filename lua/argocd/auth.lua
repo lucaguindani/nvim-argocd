@@ -45,6 +45,10 @@ end
 
 -- Lazy login - attempts to use existing credentials first
 function M.lazy_login(callback)
+  -- Load stored credentials first
+  M.load_credentials()
+  
+  -- Check if we're already logged in with stored credentials
   if M.is_logged_in() then
     if callback then callback() end
     return
