@@ -12,8 +12,6 @@ local app_list_timer = nil
 local buf = nil
 local app_names = {}
 
-local api = require("argocd.api")
-
 local function load_credentials()
   local f = io.open(creds_path, "r")
   if f then
@@ -42,6 +40,8 @@ local function save_credentials()
     f:close()
   end
 end
+
+local api = require("argocd.api")
 
 local function lazy_login(callback)
   if logged_in or (config.token and config.host) then
