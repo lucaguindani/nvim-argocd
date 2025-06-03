@@ -15,8 +15,8 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 
 ## Requirements
 
-- Neovim 0.7+ with Lua support  
-- Telescope.nvim for picker support (optional)
+- Neovim 0.7+
+- Telescope.nvim (optional)
 
 ## Installation
 
@@ -32,6 +32,14 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   },
 }
 ```
+
+## Authentication
+
+The plugin uses the ArgoCD API for authentication. When you first use the plugin, it will prompt you to log in to your ArgoCD instance. Your credentials are stored in a local file called `argocd-credentials.json`.
+
+> **Important:** Make sure to add `argocd-credentials.json` to your `.gitignore` file to prevent sensitive credentials from being committed to version control.
+
+To log out and clear your credentials, use the `:ArgoLogout` command. This will remove the stored credentials from the local configuration file.
 
 ## Usage
 
