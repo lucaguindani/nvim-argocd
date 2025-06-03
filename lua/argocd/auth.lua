@@ -43,61 +43,55 @@ function M.is_logged_in()
   return M.defaults.host ~= nil and M.defaults.token ~= nil
 end
 
--- Lazy login - attempts to use existing credentials first
-function M.lazy_login(callback)
+-- Login to ArgoCD
+function M.login()
   -- Load stored credentials first
   M.load_credentials()
   
   -- Check if we're already logged in with stored credentials
   if M.is_logged_in() then
-    if callback then callback() end
-    return
+    vim.notify("Already logged in to ArgoCD", vim.log.levels.INFO)
+    return true
   end
 
-  vim.ui.input({
+  local host = vim.ui.input({
     prompt = "ArgoCD API Host (e.g. https://argocd.example.com): ",
     default = M.defaults.host
-  }, function(host)
-    if not host or host == "" then
-      vim.notify("Host is required", vim.log.levels.ERROR)
-      if callback then callback() end
-      return
-    end
-    M.defaults.host = host
+  })
+  if not host or host == "" then
+    vim.notify("Host is required", vim.log.levels.ERROR)
+    return false
+  end
+  M.defaults.host = host
 
-    vim.ui.input({ prompt = "Username: " }, function(user)
-      if not user or user == "" then
-        vim.notify("Username is required", vim.log.levels.ERROR)
-        if callback then callback() end
-        return
-      end
+  local user = vim.ui.input({ prompt = "Username: " })
+  if not user or user == "" then
+    vim.notify("Username is required", vim.log.levels.ERROR)
+    return false
+  end
 
-      vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
-        if not pass or pass == "" then
-          vim.notify("Password is required", vim.log.levels.ERROR)
-          if callback then callback() end
-          return
-        end
+  local pass = vim.ui.input({ prompt = "Password: ", secret = true })
+  if not pass or pass == "" then
+    vim.notify("Password is required", vim.log.levels.ERROR)
+    return false
+  end
 
-        local curl = require("plenary.curl")
-        local res = curl.post(M.defaults.host .. "/api/v1/session", {
-          body = vim.fn.json_encode({ username = user, password = pass }),
-          headers = { ["Content-Type"] = "application/json" },
-        })
+  local curl = require("plenary.curl")
+  local res = curl.post(M.defaults.host .. "/api/v1/session", {
+    body = vim.fn.json_encode({ username = user, password = pass }),
+    headers = { ["Content-Type"] = "application/json" },
+  })
 
-        if res.status == 200 then
-          local data = vim.fn.json_decode(res.body)
-          M.defaults.token = data.token
-          M.save_credentials()
-          vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
-          if callback then callback() end
-        else
-          vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
-          if callback then callback() end
-        end
-      end)
-    end)
-  end)
+  if res.status == 200 then
+    local data = vim.fn.json_decode(res.body)
+    M.defaults.token = data.token
+    M.save_credentials()
+    vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
+    return true
+  else
+    vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+    return false
+  end
 end
 
 -- Clear stored credentials

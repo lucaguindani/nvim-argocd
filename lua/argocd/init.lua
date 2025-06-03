@@ -4,7 +4,7 @@ local api = require("argocd.api")
 local ui = require("argocd.ui")
 
 -- Auth functions
-M.lazy_login = auth.lazy_login
+M.login = auth.login
 M.clear_credentials = auth.clear_credentials
 M.is_logged_in = auth.is_logged_in
 
