@@ -1,6 +1,3 @@
--- plugin/argocd.lua
--- This file is loaded automatically by Neovim when the plugin is installed
-
 -- Check Neovim version
 local v = vim.version()
 if not (v.major > 0 or (v.major == 0 and v.minor >= 7)) then
