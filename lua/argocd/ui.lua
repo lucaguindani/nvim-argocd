@@ -138,19 +138,24 @@ function M.update_app(app_name)
 end
 
 local app_list_timer = nil
-local buf = nil
-local win_id = nil
-local app_names = {}
-
 function M.list_apps()
+  -- Initialize local variables
+  local buf, win_id, app_names
+  local err
+
   -- Create floating window for app list
   buf, win_id = M.create_app_list_window()
+  if not buf or not win_id then
+    vim.notify("Failed to create floating window", vim.log.levels.ERROR)
+    return nil
+  end
 
   -- Get applications using API
   app_names, err = api.get_applications()
   if not app_names then
-    vim.notify(err, vim.log.levels.ERROR)
-    return buf
+    vim.notify(err or "Failed to get applications", vim.log.levels.ERROR)
+    vim.api.nvim_win_close(win_id, true)
+    return nil
   end
 
   -- Draw applications
@@ -158,12 +163,12 @@ function M.list_apps()
     if not vim.api.nvim_buf_is_valid(buf) then return end
 
     local lines = {}
-    local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+    local cursor_line = vim.api.nvim_win_get_cursor(buf)[1]
 
     for i, app in ipairs(app_names) do
-      local base = string.format("%s %s", app.icon, app.name)
+      local base = string.format("%s %s", app.icon or "", app.name or "")
       if i == cursor_line then
-        base = base .. string.format(" (%s %s)", app.branch, app.sha)
+        base = base .. string.format(" (%s %s)", app.branch or "", app.sha or "")
       end
       lines[i] = base
     end
@@ -177,11 +182,15 @@ function M.list_apps()
     -- Add highlights
     for i, app in ipairs(app_names) do
       -- Highlight status icon (1 char usually)
-      vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
+      if app.icon then
+        vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
+      end
 
       -- Highlight app name (starts at col 2)
       local name_start = 2
-      vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
+      if app.name then
+        vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
+      end
 
       -- Highlight branch and sha on current line as comment
       if i == cursor_line then
