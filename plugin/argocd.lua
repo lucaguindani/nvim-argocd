@@ -6,7 +6,7 @@ if not (v.major > 0 or (v.major == 0 and v.minor >= 7)) then
 end
 
 -- Check if argocd is installed and load it
-local argocd_ok, argocd = pcall(require, "argocd")
+local argocd_ok, argocd = pcall(require, "argocd.lua.init")
 if not argocd_ok then
   vim.notify("[argocd.nvim] failed to load plugin", vim.log.levels.ERROR)
   return
