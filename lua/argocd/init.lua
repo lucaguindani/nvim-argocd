@@ -1,46 +1,22 @@
 local M = {}
+local auth = require("argocd.auth")
+local api = require("argocd.api")
+local ui = require("argocd.ui")
 
--- Lazy load auth module
-function M.lazy_login()
-  return require("argocd.auth").lazy_login()
-end
+-- Auth functions
+M.lazy_login = auth.lazy_login
+M.clear_credentials = auth.clear_credentials
+M.is_logged_in = auth.is_logged_in
 
-function M.clear_credentials()
-  return require("argocd.auth").clear_credentials()
-end
+-- API functions
+M.api_request = api.api_request
+M.sync_app = api.sync_app
+M.delete_app = api.delete_app
+M.update_app = api.update_app_parameters
 
-function M.is_logged_in()
-  return require("argocd.auth").is_logged_in()
-end
-
--- Lazy load API functions
-function M.api_request(method, path, body)
-  return require("argocd.api").api_request(method, path, body)
-end
-
-function M.sync_app(app_name)
-  return require("argocd.api").sync_app(app_name)
-end
-
-function M.delete_app(app_name)
-  return require("argocd.api").delete_app(app_name)
-end
-
-function M.update_app(app_name, params)
-  return require("argocd.api").update_app_parameters(app_name, params)
-end
-
--- Lazy load UI functions
-function M.list_apps()
-  return require("argocd.ui").list_apps()
-end
-
-function M.telescope_apps()
-  return require("argocd.ui").telescope_apps()
-end
-
-function M.update_app(...)
-  return require("argocd.ui").update_app(...)
-end
+-- UI functions
+M.list_apps = ui.list_apps
+M.telescope_apps = ui.telescope_apps
+M.update_app = ui.update_app
 
 return M
