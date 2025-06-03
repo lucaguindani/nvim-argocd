@@ -46,7 +46,7 @@ end
 -- Lazy login - attempts to use existing credentials first
 function M.lazy_login(callback)
   if M.is_logged_in() then
-    callback()
+    if callback then callback() end
     return
   end
 
@@ -56,6 +56,7 @@ function M.lazy_login(callback)
   }, function(host)
     if not host or host == "" then
       vim.notify("Host is required", vim.log.levels.ERROR)
+      if callback then callback() end
       return
     end
     M.defaults.host = host
@@ -63,12 +64,14 @@ function M.lazy_login(callback)
     vim.ui.input({ prompt = "Username: " }, function(user)
       if not user or user == "" then
         vim.notify("Username is required", vim.log.levels.ERROR)
+        if callback then callback() end
         return
       end
 
       vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
         if not pass or pass == "" then
           vim.notify("Password is required", vim.log.levels.ERROR)
+          if callback then callback() end
           return
         end
 
@@ -83,9 +86,10 @@ function M.lazy_login(callback)
           M.defaults.token = data.token
           M.save_credentials()
           vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
-          callback()
+          if callback then callback() end
         else
           vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+          if callback then callback() end
         end
       end)
     end)
