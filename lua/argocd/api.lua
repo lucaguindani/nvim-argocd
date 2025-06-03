@@ -11,10 +11,10 @@ function M.api_request(method, path, body)
   end
 
   local curl = require("plenary.curl")
-  local url = config.defaults.host .. path
+  local url = auth.defaults.host .. path
   local headers = {
     ["Content-Type"] = "application/json",
-    ["Authorization"] = "Bearer " .. config.defaults.token
+    ["Authorization"] = "Bearer " .. auth.defaults.token
   }
 
   local options = {
