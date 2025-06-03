@@ -12,18 +12,6 @@ local app_list_timer = nil
 local buf = nil
 local app_names = {}
 
-local function save_credentials()
-  local creds = {
-    host = config.host,
-    token = config.token,
-  }
-  local f = io.open(creds_path, "w")
-  if f then
-    f:write(vim.fn.json_encode(creds))
-    f:close()
-  end
-end
-
 local function load_credentials()
   local f = io.open(creds_path, "r")
   if f then
@@ -35,6 +23,21 @@ local function load_credentials()
       config.token = creds.token
       logged_in = true
     end
+  end
+end
+
+-- Load saved credentials on plugin load
+load_credentials()
+
+local function save_credentials()
+  local creds = {
+    host = config.host,
+    token = config.token,
+  }
+  local f = io.open(creds_path, "w")
+  if f then
+    f:write(vim.fn.json_encode(creds))
+    f:close()
   end
 end
 
@@ -79,9 +82,6 @@ local function lazy_login(callback)
     end)
   end)
 end
-
--- Load saved credentials on plugin load
-load_credentials()
 
 local function api_request(method, path, body)
   if not config.host or not config.token or not path then
