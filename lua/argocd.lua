@@ -9,10 +9,10 @@ local api = require("argocd.api")
 local auth = require("argocd.auth")
 
 function M.list_apps()
-  if timer then
-    timer:stop()
-    timer:close()
-    timer = nil
+  if app_list_timer then
+    app_list_timer:stop()
+    app_list_timer:close()
+    app_list_timer = nil
   end
 
   local function fetch_and_draw()
