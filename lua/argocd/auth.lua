@@ -1,4 +1,10 @@
-local M = {}
+local M = {
+  defaults = {
+    host = nil,
+    token = nil,
+  },
+  creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
+}
 
 -- Configuration defaults
 M.defaults = {
