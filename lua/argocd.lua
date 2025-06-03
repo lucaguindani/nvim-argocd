@@ -5,8 +5,8 @@ local app_list_timer = nil
 local buf = nil
 local app_names = {}
 
-local api = require("argocd.api")
-local auth = require("argocd.auth")
+local api = require("api")
+local auth = require("auth")
 
 function M.list_apps()
   if app_list_timer then
