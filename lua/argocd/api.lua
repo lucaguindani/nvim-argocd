@@ -40,7 +40,6 @@ function M.get_app_status(app_name)
   return nil
 end
 
--- Sync an application
 -- List applications
 function M.list_apps()
   local res = M.api_request("get", "/api/v1/applications")
@@ -51,6 +50,25 @@ function M.list_apps()
     end
   end
   return nil, "Failed to list applications"
+end
+
+-- Sync an application
+function M.sync_app(app_name)
+  local status = M.get_app_status(app_name)
+  if status == "Synced" then
+    vim.notify("Application " .. app_name .. " is already synced", vim.log.levels.INFO)
+    return
+  end
+  
+  local res = M.api_request("post", "/api/v1/applications/" .. app_name .. "/sync", {
+    revision = "HEAD"
+  })
+  
+  if res.status == 200 then
+    vim.notify("Syncing application " .. app_name .. "...", vim.log.levels.INFO)
+  else
+    vim.notify("Failed to sync application: " .. res.body, vim.log.levels.ERROR)
+  end
 end
 
 -- Get application parameters
@@ -94,11 +112,22 @@ function M.delete_app(app_name)
 end
 
 -- Sync an application
+-- Sync an application
 function M.sync_app(app_name)
   local status = M.get_app_status(app_name)
   if status == "Synced" then
     vim.notify("Application " .. app_name .. " is already synced", vim.log.levels.INFO)
     return
+  end
+  
+  local res = M.api_request("post", "/api/v1/applications/" .. app_name .. "/sync", {
+    revision = "HEAD"
+  })
+  
+  if res.status == 200 then
+    vim.notify("Syncing application " .. app_name .. "...", vim.log.levels.INFO)
+  else
+    vim.notify("Failed to sync application: " .. res.body, vim.log.levels.ERROR)
   end
 
   local confirm = vim.fn.confirm("Sync application " .. app_name .. "?", "&Yes\n&No")

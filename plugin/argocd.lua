@@ -8,7 +8,7 @@ end
 -- Check if argocd is installed and load it
 local argocd_ok, argocd = pcall(require, "argocd")
 if not argocd_ok then
-  vim.notify("[argocd.nvim] failed to load plugin", vim.log.levels.ERROR)
+  vim.notify("[argocd.nvim] failed to load plugin: " .. (argocd or "unknown error"), vim.log.levels.ERROR)
   return
 end
 

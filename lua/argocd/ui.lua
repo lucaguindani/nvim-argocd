@@ -1,6 +1,103 @@
-local M = {}
+local M = {
+  create_app_list_window = function()
+    local width = math.floor(vim.o.columns * 0.3)
+    local height = math.floor(vim.o.lines * 0.3)
+    local row = math.floor((vim.o.lines - height) / 2)
+    local col = math.floor((vim.o.columns - width) / 2)
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    local win_id = vim.api.nvim_open_win(buf, true, {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+    })
+
+    -- Set up buffer and window options for app list
+    vim.api.nvim_buf_set_name(buf, "ArgoCD Apps")
+    vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
+    vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+    vim.api.nvim_buf_set_option(buf, "swapfile", false)
+    vim.api.nvim_buf_set_option(buf, "modifiable", false)
+    vim.api.nvim_buf_set_option(buf, "readonly", true)
+
+    -- Set filetype
+    vim.bo[buf].filetype = "argocd"
+
+    return buf, win_id
+  end,
+
+  create_edit_window = function(width, height, app_name)
+    local width = width or math.floor(vim.o.columns * 0.4)
+    local height = height or math.floor(vim.o.lines * 0.4)
+    local row = math.floor((vim.o.lines - height) / 2)
+    local col = math.floor((vim.o.columns - width) / 2)
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    local win_id = vim.api.nvim_open_win(buf, true, {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      title = " Edit " .. app_name .. " parameters ",
+      title_pos = "center",
+      footer = {
+        { " <CR> to save, q to quit ", "Comment" }
+      },
+      footer_pos = "center",
+    })
+
+    -- Set up buffer and window options for parameter editing
+    vim.api.nvim_buf_set_name(buf, "ArgoCD Parameters")
+    vim.api.nvim_buf_set_option(buf, "buftype", "acwrite")
+    vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+    vim.api.nvim_buf_set_option(buf, "swapfile", false)
+    vim.api.nvim_buf_set_option(buf, "modifiable", true)
+    vim.api.nvim_buf_set_option(buf, "readonly", false)
+
+    -- Set filetype
+    vim.bo[buf].filetype = "argocdparams"
+
+    return buf, win_id
+  end
+}
 local api = require("argocd.api")
 local telescope = require("telescope.builtin")
+
+-- Pick application using telescope
+function M.telescope_apps()
+  local apps, err = api.list_apps()
+  if not apps then
+    vim.notify("Failed to list applications: " .. err, vim.log.levels.ERROR)
+    return
+  end
+
+  local app_names = {}
+  for _, app in ipairs(apps) do
+    table.insert(app_names, app.metadata.name)
+  end
+
+  telescope.find_files({
+    finder = function(prompt)
+      return app_names, true
+    end,
+    prompt_title = "Select Application",
+    results_title = "Applications",
+    layout_config = {
+      width = 0.8,
+      height = 0.8,
+    },
+    attach_mappings = function(prompt_bufnr)
+      return true
+    end,
+  })
+end
 
 -- Create floating window for application list
 function M.create_app_list_window()
@@ -161,51 +258,18 @@ function M.list_apps()
 
   -- Display apps in buffer
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, app_lines)
-    vim.api.nvim_win_close(win_id, true)
-    return nil
-  end
 
-  -- Draw applications
-  local function draw_lines()
-    if not vim.api.nvim_buf_is_valid(buf) then return end
+  -- Set up keymaps
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      vim.api.nvim_win_close(win_id, true)
+    end,
+  })
 
-    local lines = {}
-    local cursor_line = vim.api.nvim_win_get_cursor(buf)[1]
-
-    for i, app in ipairs(app_names) do
-      local base = string.format("%s %s", app.icon or "", app.name or "")
-      if i == cursor_line then
-        base = base .. string.format(" (%s %s)", app.branch or "", app.sha or "")
-      end
-      lines[i] = base
-    end
-
-    -- Allow temporary buffer modification
-    vim.bo[buf].modifiable = true
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-    vim.bo[buf].modifiable = false
-    vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-
-    -- Add highlights
-    for i, app in ipairs(app_names) do
-      -- Highlight status icon (1 char usually)
-      if app.icon then
-        vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
-      end
-
-      -- Highlight app name (starts at col 2)
-      local name_start = 2
-      if app.name then
-        vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
-      end
-
-      -- Highlight branch and sha on current line as comment
-      if i == cursor_line then
-        local comment_pos = lines[i]:find("%(")
-        if comment_pos then
-          vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos - 1, -1)
-        end
-      end
+  -- Set up buffer cleanup
+  vim.api.nvim_create_autocmd("BufWipeout", {
     end
   end
 

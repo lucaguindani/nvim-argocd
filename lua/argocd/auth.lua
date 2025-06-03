@@ -6,15 +6,6 @@ local M = {
   creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
 }
 
--- Configuration defaults
-M.defaults = {
-  host = nil,
-  token = nil,
-}
-
--- Credentials file path
-M.creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
-
 -- Load saved credentials
 function M.load_credentials()
   local f = io.open(M.creds_path, "r")
