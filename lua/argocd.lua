@@ -1,5 +1,5 @@
 -- File: lua/argocd.lua
--- ArgoCD Plugin for Neovim (Lazy.nvim compatible with Telescope support)
+-- ArgoCD Plugin for Neovim
 
 local M = {}
 local config = {
@@ -36,34 +36,6 @@ local function load_credentials()
       logged_in = true
     end
   end
-end
-
-local function api_request(method, path, body)
-  if not config.host or not config.token or not path then
-    return {
-      status = 401,
-      body = "Not logged in or missing host/token",
-    }
-  end
-
-  local curl = require("plenary.curl")
-  local url = config.host .. path
-  local headers = {
-    ["Content-Type"] = "application/json",
-    ["Authorization"] = "Bearer " .. config.token
-  }
-
-  local options = {
-    url = url,
-    method = method,
-    headers = headers,
-  }
-
-  if body then
-    options.body = vim.fn.json_encode(body)
-  end
-
-  return curl.request(options)
 end
 
 local function lazy_login(callback)
@@ -110,6 +82,34 @@ end
 
 -- Load saved credentials on plugin load
 load_credentials()
+
+local function api_request(method, path, body)
+  if not config.host or not config.token or not path then
+    return {
+      status = 401,
+      body = "Not logged in or missing host/token",
+    }
+  end
+
+  local curl = require("plenary.curl")
+  local url = config.host .. path
+  local headers = {
+    ["Content-Type"] = "application/json",
+    ["Authorization"] = "Bearer " .. config.token
+  }
+
+  local options = {
+    url = url,
+    method = method,
+    headers = headers,
+  }
+
+  if body then
+    options.body = vim.fn.json_encode(body)
+  end
+
+  return curl.request(options)
+end
 
 function M.list_apps()
   if timer then
@@ -440,7 +440,7 @@ function M.sync_app(app_name)
     end)
   else
     vim.notify(app_name .. " is already synced.", vim.log.levels.INFO)
-  end 
+  end
 end
 
 function M.delete_app(app_name)
@@ -464,13 +464,31 @@ function M.delete_app(app_name)
   end)
 end
 
+function M.clear_credentials()
+  -- Clear in-memory config
+  config.host = nil
+  config.token = nil
+  logged_in = false
+
+  -- Delete the credentials file if it exists
+  local ok, err = os.remove(creds_path)
+  if ok then
+    vim.notify("ArgoCD credentials cleared", vim.log.levels.INFO)
+  else
+    if err then
+      vim.notify("Error clearing credentials: " .. err, vim.log.levels.ERROR)
+    else
+      vim.notify("No credentials file to delete", vim.log.levels.INFO)
+    end
+  end
+end
+
 function M.telescope_apps()
   local has_telescope = pcall(require, "telescope")
 
   if not has_telescope then
-    -- You can notify the user or return a message table for the picker
     vim.notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.WARN)
-    return nil -- or return a dummy function/table if needed
+    return nil
   end
 
   local pickers = require('telescope.pickers')
@@ -504,6 +522,12 @@ function M.telescope_apps()
           M.sync_app(selection[1])
         end
       end)
+      map('i', '<C-u>', function()
+        local selection = action_state.get_selected_entry()
+        if selection and selection[1] then
+          M.update_app(selection[1])
+        end
+      end)
       map('i', '<C-d>', function()
         local selection = action_state.get_selected_entry()
         if selection and selection[1] then
@@ -520,25 +544,6 @@ function M.telescope_apps()
       return true
     end
   }):find()
-end
-
-function M.clear_credentials()
-  -- Clear in-memory config
-  config.host = nil
-  config.token = nil
-  logged_in = false
-
-  -- Delete the credentials file if it exists
-  local ok, err = os.remove(creds_path)
-  if ok then
-    vim.notify("ArgoCD credentials cleared", vim.log.levels.INFO)
-  else
-    if err then
-      vim.notify("Error clearing credentials: " .. err, vim.log.levels.ERROR)
-    else
-      vim.notify("No credentials file to delete", vim.log.levels.INFO)
-    end
-  end
 end
 
 -- Export lazy_login so plugin/argocd.lua can use it

@@ -28,7 +28,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   branch = "main",
   dependencies = {
     "nvim-lua/plenary.nvim",
-    "nvim-telescope/telescope.nvim", -- optional but recommended
+    "nvim-telescope/telescope.nvim", -- optional
   },
 }
 ```
@@ -47,11 +47,12 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 | `:ArgoLogout` | Clear credentials |
 
 
-### Telescope picker keybindings
+### Telescope keybindings
 
 | Keys    | Action       |
 |---------|--------------|
 | `<CR>`  | Sync app     |
 | `<C-s>` | Sync app     |
+| `<C-u>` | Update app   |
 | `<C-d>` | Delete app   |
 
