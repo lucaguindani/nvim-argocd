@@ -14,16 +14,20 @@ function M.is_logged_in()
 end
 
 -- Lazy load API functions
-function M.api_request(...)
-  return require("argocd.api").api_request(...)
+function M.api_request(method, path, body)
+  return require("argocd.api").api_request(method, path, body)
 end
 
-function M.sync_app(...)
-  return require("argocd.api").sync_app(...)
+function M.sync_app(app_name)
+  return require("argocd.api").sync_app(app_name)
 end
 
-function M.delete_app(...)
-  return require("argocd.api").delete_app(...)
+function M.delete_app(app_name)
+  return require("argocd.api").delete_app(app_name)
+end
+
+function M.update_app(app_name, params)
+  return require("argocd.api").update_app_parameters(app_name, params)
 end
 
 -- Lazy load UI functions
