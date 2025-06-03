@@ -15,11 +15,58 @@ end
 -- Check if plenary is installed
 local plenary_ok, _ = pcall(require, "plenary")
 if not plenary_ok then
-  vim.notify("[argocd.nvim] requires plenary", vim.log.levels.WARN)
+  vim.notify("[argocd.nvim] requires plenary", vim.log.levels.warn)
+  return
 end
 
--- Set up the plugin with default commands
+-- Initialize UI
+local ui = require("argocd.ui")
 
+-- Set up floating window options
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "argocd",
+  callback = function()
+    vim.opt_local.number = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.cursorline = true
+    vim.opt_local.cursorcolumn = false
+    vim.opt_local.list = false
+    vim.opt_local.signcolumn = "no"
+    vim.opt_local.wrap = false
+    vim.opt_local.spell = false
+    vim.opt_local.scrolloff = 0
+    vim.opt_local.sidescrolloff = 0
+  end,
+})
+
+-- Set up keymaps for app list
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "argocd",
+  callback = function()
+    vim.keymap.set("n", "<CR>", function()
+      local app_name = vim.api.nvim_get_current_line():match("%s+(.-)%s*")
+      if app_name then
+        ui.update_app(app_name)
+      end
+    end, { buffer = true })
+
+    vim.keymap.set("n", "s", function()
+      local app_name = vim.api.nvim_get_current_line():match("%s+(.-)%s*")
+      if app_name then
+        ui.sync_app(app_name)
+      end
+    end, { buffer = true })
+
+    vim.keymap.set("n", "d", function()
+      local app_name = vim.api.nvim_get_current_line():match("%s+(.-)%s*")
+      if app_name then
+        ui.delete_app(app_name)
+      end
+    end, { buffer = true })
+  end,
+})
+
+-- Set up the plugin with default commands
 vim.api.nvim_create_user_command("ArgoList", function()
   argocd.lazy_login(argocd.list_apps)
 end, {})
