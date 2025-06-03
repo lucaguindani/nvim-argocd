@@ -1,9 +1,9 @@
 local M = {}
-local config = require("argocd.config")
+local auth = require("argocd.auth")
 
 -- Make API requests to ArgoCD
 function M.api_request(method, path, body)
-  if not config.defaults.host or not config.defaults.token or not path then
+  if not auth.defaults.host or not auth.defaults.token or not path then
     return {
       status = 401,
       body = "Not logged in or missing host/token",
