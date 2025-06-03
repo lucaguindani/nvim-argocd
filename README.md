@@ -8,9 +8,9 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 ## Features
 
 - Manage applications in a vertical split buffer
-- Sync applications
-- Update applications
-- Delete applications
+- Sync application
+- Update application parameters
+- Delete application
 - Telescope picker with keybindings
 
 ## Requirements
@@ -37,15 +37,14 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ### Commands
 
-| Command           | Description                            |
-|-------------------|------------------------------------|
-| `:ArgoList`       | Manage all apps                 |
-| `:ArgoSync <app>` | Sync a specific app               |
-| `:ArgoUpdate <app>` | Update a specific app |
-| `:ArgoDelete <app>` | Delete a specific app |
-| `:ArgoPick`       | Telescope picker for app selection and actions |
-| `:ArgoLogout` | Clear credentials |
-
+| Command              | Description                                       |
+|----------------------|---------------------------------------------------|
+| `:ArgoList`          | Manage all apps (s=Sync, u=Update, d=Delete)      |
+| `:ArgoSync <app>`    | Sync a specific app                               |
+| `:ArgoUpdate <app>`  | Update a specific app                             |
+| `:ArgoDelete <app>`  | Delete a specific app                             |
+| `:ArgoPick`          | Telescope picker for app selection and actions    |
+| `:ArgoLogout`        | Clear credentials                                 |
 
 ### Telescope keybindings
 
@@ -55,4 +54,3 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 | `<C-s>` | Sync app     |
 | `<C-u>` | Update app   |
 | `<C-d>` | Delete app   |
-
