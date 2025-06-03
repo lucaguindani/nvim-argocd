@@ -39,7 +39,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 | Command              | Description                                       |
 |----------------------|---------------------------------------------------|
-| `:ArgoList`          | Manage all apps (s=Sync, u=Update, d=Delete)      |
+| `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete)          |
 | `:ArgoSync <app>`    | Sync a specific app                               |
 | `:ArgoUpdate <app>`  | Update a specific app                             |
 | `:ArgoDelete <app>`  | Delete a specific app                             |
