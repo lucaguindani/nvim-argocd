@@ -10,10 +10,10 @@ local app_names = {} -- Stores app data for the list
 
 function M.list_apps()
   Auth.lazy_login(function()
-    if app_list_timer and type(app_list_timer.is_closed) == "function" and not app_list_timer:is_closed() then
-      app_list_timer:stop()
-      app_list_timer:close()
-      app_list_timer = nil
+    if timer then
+      timer:stop()
+      timer:close()
+      timer = nil
     end
 
     local function fetch_and_draw()
@@ -182,15 +182,22 @@ function M.list_apps()
 
     fetch_and_draw()
 
-    if not app_list_timer or (app_list_timer and type(app_list_timer.is_closed) == "function" and app_list_timer:is_closed()) then
-      local timer_ok, uv_timer = pcall(vim.loop.new_timer)
-      if timer_ok then
-        app_list_timer = uv_timer
-        app_list_timer:start(30000, 30000, vim.schedule_wrap(fetch_and_draw)) -- Start after 30s, then every 30s
-      else
-        vim.notify("Failed to create timer for app list refresh.", vim.log.levels.WARN)
-      end
-    end
+    -- Start the timer and save the handle
+    app_list_timer = vim.loop.new_timer()
+    app_list_timer:start(0, 5000, vim.schedule_wrap(fetch_and_draw))
+
+    -- Stop timer when buffer is unloaded
+    vim.api.nvim_create_autocmd({ "BufWipeout", "BufUnload", "WinClosed" }, {
+      buffer = buf,
+      once = true,
+      callback = function()
+        if app_list_timer then
+          app_list_timer:stop()
+          app_list_timer:close()
+          app_list_timer = nil
+        end
+      end,
+    })
   end)
 end
 
