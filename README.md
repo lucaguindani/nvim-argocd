@@ -62,3 +62,13 @@ To log out and clear your credentials, use the `:ArgoLogout` command. This will 
 | `<C-s>` | Sync app     |
 | `<C-u>` | Update app   |
 | `<C-d>` | Delete app   |
+
+## Testing
+
+The plugin includes basic tests for its core modules. Use the following command to run them from the project root directory.
+
+```bash
+make test
+```
+
+The tests are run using Neovim's built-in testing capabilities with the help of Plenary.nvim. They verify that the basic structure and function exposure of each module is correct without testing actual functionality or API interactions.

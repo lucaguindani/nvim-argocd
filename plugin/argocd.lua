@@ -24,23 +24,23 @@ end
 -- Set up the plugin with default commands
 
 vim.api.nvim_create_user_command("ArgoList", function()
-  argocd.lazy_login(argocd.list_apps)
+  argocd.list_apps()
 end, {})
 
 vim.api.nvim_create_user_command("ArgoSync", function(opts)
-  argocd.lazy_login(function() argocd.sync_app(opts.args) end)
+  argocd.sync_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoDelete", function(opts)
-  argocd.lazy_login(function() argocd.delete_app(opts.args) end)
+  argocd.delete_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoUpdate", function(opts)
-  argocd.lazy_login(function() argocd.update_app(opts.args) end)
+  argocd.update_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoPick", function()
-  argocd.lazy_login(argocd.telescope_apps)
+  argocd.telescope_apps()
 end, {})
 
 vim.api.nvim_create_user_command("ArgoLogout", function()
