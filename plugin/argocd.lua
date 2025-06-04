@@ -43,6 +43,10 @@ vim.api.nvim_create_user_command("ArgoPick", function()
   argocd.telescope_apps()
 end, {})
 
+vim.api.nvim_create_user_command("ArgoLogin", function()
+  argocd.lazy_login()
+end, {})
+
 vim.api.nvim_create_user_command("ArgoLogout", function()
   argocd.clear_credentials()
 end, {})

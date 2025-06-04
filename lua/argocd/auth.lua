@@ -39,6 +39,7 @@ end
 
 function Auth.lazy_login(callback)
   if logged_in or (config.token and config.host) then
+    vim.notify("Already logged in to ArgoCD", vim.log.levels.INFO)
     if callback and type(callback) == "function" then
       callback()
     end

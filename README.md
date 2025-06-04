@@ -35,11 +35,13 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## Authentication
 
-The plugin uses the ArgoCD API for authentication. When you first use the plugin, it will prompt you to log in to your ArgoCD instance. Your credentials are stored in a local file called `argocd-credentials.json`.
+The plugin uses the ArgoCD API for authentication. Your credentials are stored in a local file called `argocd-credentials.json`.
+
+The plugin will automatically prompt you to login when you first use it. You can also manually trigger the login process using `:ArgoLogin`.
+
+To logout and clear your credentials, use the `:ArgoLogout` command. This will remove the stored credentials from the local configuration file.
 
 > **Important:** Make sure to add `argocd-credentials.json` to your `.gitignore` file to prevent sensitive credentials from being committed to version control.
-
-To log out and clear your credentials, use the `:ArgoLogout` command. This will remove the stored credentials from the local configuration file.
 
 ## Usage
 
@@ -52,7 +54,8 @@ To log out and clear your credentials, use the `:ArgoLogout` command. This will 
 | `:ArgoUpdate <app>`  | Update a specific app parameters                  |
 | `:ArgoDelete <app>`  | Delete a specific app                             |
 | `:ArgoPick`          | Telescope picker for app selection and actions    |
-| `:ArgoLogout`        | Clear credentials                                 |
+| `:ArgoLogin`         | Manually trigger the login process                |
+| `:ArgoLogout`        | Clear credentials and logout                     |
 
 ### Telescope keybindings
 

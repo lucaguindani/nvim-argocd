@@ -4,6 +4,14 @@ local M = {}
 local Auth = require("argocd.auth")
 local Api = require("argocd.api")
 
+function M.lazy_login(callback)
+  Auth.lazy_login(callback)
+end
+
+function M.clear_credentials()
+  Auth.clear_credentials()
+end
+
 local app_list_timer = nil
 local buf = nil -- Buffer for the app list
 local app_names = {} -- Stores app data for the list
@@ -360,10 +368,6 @@ function M.delete_app(app_name)
       end
     end)
   end)
-end
-
-function M.clear_credentials()
-  Auth.clear_credentials()
 end
 
 function M.telescope_apps()
