@@ -49,7 +49,7 @@ To log out and clear your credentials, use the `:ArgoLogout` command. This will 
 |----------------------|---------------------------------------------------|
 | `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete)          |
 | `:ArgoSync <app>`    | Sync a specific app                               |
-| `:ArgoUpdate <app>`  | Update a specific app                             |
+| `:ArgoUpdate <app>`  | Update a specific app parameters                  |
 | `:ArgoDelete <app>`  | Delete a specific app                             |
 | `:ArgoPick`          | Telescope picker for app selection and actions    |
 | `:ArgoLogout`        | Clear credentials                                 |
