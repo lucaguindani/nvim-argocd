@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ development, main ]
+  pull_request:
+    branches: [ development ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Neovim
+        run: |
+          sudo add-apt-repository ppa:neovim-ppa/stable -y
+          sudo apt-get update
+          sudo apt-get install -y neovim
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install -y unzip curl
+          curl -fLo lazy.nvim.zip --create-dirs https://github.com/folke/lazy.nvim/archive/refs/heads/main.zip
+          unzip lazy.nvim.zip -d ~/.local/share/nvim/site/pack/packer/start/
+          rm lazy.nvim.zip
+
+      - name: Install Plenary.nvim
+        run: |
+          mkdir -p ~/.local/share/nvim/site/pack/packer/start/plenary.nvim
+          cd ~/.local/share/nvim/site/pack/packer/start/plenary.nvim
+          git init
+          git remote add origin https://github.com/nvim-lua/plenary.nvim.git
+          git fetch --depth 1 origin main
+          git reset --hard origin/main
+
+      - name: Run Tests
+        run: make test
+        env:
+          NVIM_APPNAME: nvim-argocd-test
