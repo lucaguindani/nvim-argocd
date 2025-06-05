@@ -6,14 +6,14 @@ local Auth = require("argocd.auth")
 local curl = require("plenary.curl")
 
 function Api.request(method, path, body)
-  local host = Auth.get_host()
-  local token = Auth.get_token()
+  local host = Auth.get_current_host()
+  local token = Auth.get_current_token()
 
   if not host or not token then
-    vim.notify("Cannot make API request: Not logged in or host/token missing.", vim.log.levels.ERROR)
+    vim.notify("Cannot make API request: Not logged in to current context or host/token missing.", vim.log.levels.ERROR)
     return {
       status = 401,
-      body = "Not logged in or missing host/token",
+      body = "Not logged in to current context or missing host/token",
     }
   end
 

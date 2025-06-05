@@ -50,3 +50,32 @@ end, {})
 vim.api.nvim_create_user_command("ArgoLogout", function()
   argocd.clear_credentials()
 end, {})
+
+vim.api.nvim_create_user_command("ArgoContextList", function()
+  argocd.list_contexts()
+end, {})
+
+vim.api.nvim_create_user_command("ArgoContextAdd", function(opts)
+  local args = vim.split(opts.args, " ", { plain = true })
+  if #args ~= 2 then
+    vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
+    return
+  end
+  argocd.add_context(args[1], args[2])
+end, { nargs = "*" })
+
+vim.api.nvim_create_user_command("ArgoContextSwitch", function(opts)
+  if opts.args == "" then
+    vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
+    return
+  end
+  argocd.switch_context(opts.args)
+end, { nargs = 1 })
+
+vim.api.nvim_create_user_command("ArgoContextRemove", function(opts)
+  if opts.args == "" then
+    vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
+    return
+  end
+  argocd.remove_context(opts.args)
+end, { nargs = 1 })

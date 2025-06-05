@@ -1,20 +1,93 @@
 -- lua/argocd.lua
 
 local M = {}
+
 local Auth = require("argocd.auth")
 local Api = require("argocd.api")
+
+local app_list_timer = nil
+local buf = nil -- Buffer for the app list
+local app_names = {} -- Stores app data for the list
+
+--- List all available contexts
+function M.list_contexts()
+  local contexts = Auth.get_contexts()
+  if vim.tbl_isempty(contexts) then
+    vim.notify("No contexts configured. Use :ArgoContextAdd to add a new context.", vim.log.levels.INFO)
+    return
+  end
+
+  local current = Auth.get_current_context()
+  local items = {}
+  for name, ctx in pairs(contexts) do
+    table.insert(items, string.format("%s%s - %s (%s)",
+      name == current and "* " or "  ",
+      name,
+      ctx.host,
+      ctx.logged_in and "logged in" or "not logged in"
+    ))
+  end
+  vim.notify(table.concat(items, "\n"), vim.log.levels.INFO)
+end
+
+--- Add a new context
+---@param context_name string Name of the context
+---@param host string ArgoCD host URL
+function M.add_context(context_name, host)
+  if not context_name or not host then
+    vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.add_context(context_name, host) then
+    vim.notify(string.format("Added context '%s' with host '%s'", context_name, host), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("Context '%s' already exists", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Switch to a different context
+---@param context_name string Name of the context to switch to
+function M.switch_context(context_name)
+  if not context_name then
+    vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.set_current_context(context_name) then
+    vim.notify(string.format("Switched to context '%s'", context_name), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Remove a context
+---@param context_name string Name of the context to remove
+function M.remove_context(context_name)
+  if not context_name then
+    vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.remove_context(context_name) then
+    vim.notify(string.format("Removed context '%s'", context_name), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Clear credentials for the current context
+function M.clear_current_credentials()
+  Auth.clear_current_credentials()
+end
 
 function M.lazy_login(callback)
   Auth.lazy_login(callback)
 end
 
 function M.clear_credentials()
-  Auth.clear_credentials()
+  Auth.clear_current_credentials()
 end
-
-local app_list_timer = nil
-local buf = nil -- Buffer for the app list
-local app_names = {} -- Stores app data for the list
 
 function M.list_apps()
   Auth.lazy_login(function()
