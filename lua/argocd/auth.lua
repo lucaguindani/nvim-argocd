@@ -31,6 +31,7 @@ end
 function Auth.set_current_context(context_name)
   if contexts[context_name] then
     current_context = context_name
+    Auth.save_contexts()
     return true
   end
   return false
@@ -117,8 +118,7 @@ function Auth.load_contexts()
       contexts = data.contexts
       current_context = data.current_context
       
-      -- If no current context is set but there's only one context, use it
-      if not current_context and vim.tbl_count(contexts) == 1 then
+      if not current_context then
         for name, _ in pairs(contexts) do
           current_context = name
           break
@@ -184,7 +184,6 @@ function Auth.lazy_login(callback)
 
   local ctx = Auth.get_context_credentials(current)
   if ctx and (ctx.logged_in or ctx.token) then
-    vim.notify("Already logged in to ArgoCD context " .. current, vim.log.levels.INFO)
     if callback and type(callback) == "function" then
       callback()
     end
