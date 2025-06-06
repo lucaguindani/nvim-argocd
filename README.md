@@ -7,11 +7,12 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 
 ## Features
 
-- Manage applications in a vertical split buffer
-- Sync application
-- Update application parameters
-- Delete application
-- Telescope picker with keybindings
+- Manage multiple applications in an horizontal split buffer
+- Sync an application
+- Update an application parameters
+- Delete an application
+- Use Telescope picker with keybindings
+- Use contexts to work with multiple ArgoCD instances simultaneously
 
 ## Requirements
 
