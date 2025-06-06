@@ -121,6 +121,9 @@ function M.list_apps()
     vim.bo[buf].modifiable = false
     vim.bo[buf].readonly = false
 
+    -- Disable line numbers for this window
+    vim.wo.number = false
+
     -- Disable orange highlight on line number for this buffer
     vim.api.nvim_buf_call(buf, function()
       vim.cmd("highlight CursorLineNr NONE")
@@ -498,12 +501,11 @@ function draw_lines()
   vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
   for i, app in ipairs(app_names) do
-    -- Highlight status icon (1 char usually)
-    vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
-
-    -- Highlight app name (starts at col 2)
-    local name_start = 2
-    vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
+    -- Highlight entire line segment (status icon + space + app name)
+    local hl_group = (app.status == "Synced") and "String" or "WarningMsg"
+    -- Highlight the base line length
+    local highlight_end = #lines[i]
+    vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, highlight_end)
 
     -- Highlight branch and sha on current line as comment
     if i == cursor_line then
