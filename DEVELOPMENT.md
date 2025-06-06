@@ -16,9 +16,10 @@ plugin/
 ## Module Responsibilities
 
 ### auth.lua
-- Manages ArgoCD authentication state
-- Handles credential storage and loading
-- Provides login/logout functionality
+- Manages ArgoCD authentication state with multiple contexts
+- Handles credential storage and loading per context
+- Provides context management (add, switch, remove contexts)
+- Provides login/logout functionality per context
 
 ### api.lua
 - Implements the ArgoCD API client

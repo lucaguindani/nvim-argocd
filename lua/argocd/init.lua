@@ -1,20 +1,103 @@
 -- lua/argocd.lua
 
 local M = {}
+
 local Auth = require("argocd.auth")
 local Api = require("argocd.api")
+
+local app_list_timer = nil
+local buf = nil -- Buffer for the app list
+local app_names = {} -- Stores app data for the list
+
+--- List all available contexts
+function M.list_contexts()
+  local contexts = Auth.get_contexts()
+  if vim.tbl_isempty(contexts) then
+    vim.notify("No contexts configured. Use :ArgoContextAdd to add a new context.", vim.log.levels.INFO)
+    return
+  end
+
+  local current = Auth.get_current_context()
+  local items = {}
+  for name, ctx in pairs(contexts) do
+    table.insert(items, string.format("%s%s - %s (%s)",
+      name == current and "* " or "  ",
+      name,
+      ctx.host,
+      ctx.logged_in and "logged in" or "not logged in"
+    ))
+  end
+  vim.notify(table.concat(items, "\n"), vim.log.levels.INFO)
+end
+
+--- Add a new context
+---@param context_name string Name of the context
+---@param host string ArgoCD host URL
+function M.add_context(context_name, host)
+  if not context_name or not host then
+    vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.add_context(context_name, host) then
+    vim.notify(string.format("Added context '%s' with host '%s'", context_name, host), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("Context '%s' already exists", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Switch to a different context
+---@param context_name string Name of the context to switch to
+function M.switch_context(context_name)
+  if not context_name then
+    vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.set_current_context(context_name) then
+    vim.notify(string.format("Switched to context '%s'", context_name), vim.log.levels.INFO)
+
+    -- If the app list window is open, fetch and redraw immediately
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      if not Auth.is_logged_in() then
+        Auth.lazy_login()
+        return
+      end
+
+      fetch_and_draw()
+    end
+  else
+    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Remove a context
+---@param context_name string Name of the context to remove
+function M.remove_context(context_name)
+  if not context_name then
+    vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
+    return
+  end
+
+  if Auth.remove_context(context_name) then
+    vim.notify(string.format("Removed context '%s'", context_name), vim.log.levels.INFO)
+  else
+    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+  end
+end
+
+--- Clear credentials for the current context
+function M.clear_current_credentials()
+  Auth.clear_current_credentials()
+end
 
 function M.lazy_login(callback)
   Auth.lazy_login(callback)
 end
 
 function M.clear_credentials()
-  Auth.clear_credentials()
+  Auth.clear_current_credentials()
 end
-
-local app_list_timer = nil
-local buf = nil -- Buffer for the app list
-local app_names = {} -- Stores app data for the list
 
 function M.list_apps()
   Auth.lazy_login(function()
@@ -22,115 +105,6 @@ function M.list_apps()
       timer:stop()
       timer:close()
       timer = nil
-    end
-
-    local function fetch_and_draw()
-      if not vim.api.nvim_buf_is_valid(buf) then
-        if app_list_timer then
-          app_list_timer:stop()
-          app_list_timer:close()
-          app_list_timer = nil
-        end
-        return
-      end
-
-      local res = Api.get_applications()
-      if res.status ~= 200 then
-        vim.schedule(function()
-          vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
-        end)
-        return
-      end
-
-      local json = vim.fn.json_decode(res.body)
-      app_names = {}
-
-      for i, app in ipairs(json.items or {}) do
-        local sync_status = app.status.sync.status or "Unknown"
-        local icon = (sync_status == "Synced") and "✓" or "⚠"
-        local commit_sha = app.status.sync.revision or "unknown"
-        local short_sha = commit_sha:sub(1, 7)
-        local branch = app.spec.source.targetRevision or "unknown"
-
-        app_names[i] = {
-          name = app.metadata.name,
-          icon = icon,
-          sha = short_sha,
-          branch = branch,
-          status = sync_status,
-        }
-      end
-
-      local function draw_lines()
-        if not vim.api.nvim_buf_is_valid(buf) then
-          -- Buffer was closed, stop timer and abort drawing
-          if app_list_timer then
-            app_list_timer:stop()
-            app_list_timer:close()
-            app_list_timer = nil
-          end
-          return
-        end
-
-        local lines = {}
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-
-        for i, app in ipairs(app_names) do
-          -- Get status icon and highlight group
-          local status_icon, status_hl
-          if app.status == "Synced" then
-            status_icon = status_icon or "✓"
-            status_hl = status_hl or "String"
-          else
-            status_icon = status_icon or "⚠"
-            status_hl = status_hl or "WarningMsg"
-          end
-
-          -- Build line: status icon + space + app name [+ branch and sha if current line]
-          local base = string.format("%s %s", status_icon, app.name)
-
-          if i == cursor_line then
-            base = base .. string.format(" (%s %s)", app.branch, app.sha)
-          end
-
-          lines[i] = base
-        end
-
-        -- Allow temporary buffer modification
-        vim.bo[buf].modifiable = true
-        -- List projects
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-        -- Disable buffer modification
-        vim.bo[buf].modifiable = false
-        vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-
-        for i, app in ipairs(app_names) do
-          -- Highlight status icon (1 char usually)
-          vim.api.nvim_buf_add_highlight(buf, -1, (app.status == "Synced") and "String" or "WarningMsg", i - 1, 0, 1)
-
-          -- Highlight app name (starts at col 2)
-          local name_start = 2
-          vim.api.nvim_buf_add_highlight(buf, -1, "Normal", i - 1, name_start, name_start + #app.name)
-
-          -- Highlight branch and sha on current line as comment
-          if i == cursor_line then
-            local comment_pos = lines[i]:find("%(")
-            if comment_pos then
-              vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos - 1, -1)
-            end
-          end
-        end
-      end
-
-      vim.schedule(draw_lines)
-
-      vim.api.nvim_create_autocmd("CursorMoved", {
-        buffer = buf,
-        callback = function()
-          vim.schedule(draw_lines)
-        end,
-        desc = "Highlight branch and SHA on current line",
-      })
     end
 
     vim.cmd("split")
@@ -146,6 +120,9 @@ function M.list_apps()
     vim.bo[buf].swapfile = false
     vim.bo[buf].modifiable = false
     vim.bo[buf].readonly = false
+
+    -- Disable line numbers for this window
+    vim.wo.number = false
 
     -- Disable orange highlight on line number for this buffer
     vim.api.nvim_buf_call(buf, function()
@@ -242,7 +219,7 @@ function M.update_app(app_name)
     vim.bo[edit_buf].bufhidden = "wipe"
     vim.bo[edit_buf].modifiable = true
 
-    local title = " Edit " .. app_name .. " parameters "
+    local title = " Edit " .. app_name .. " parameters [" .. Auth.get_current_context() .. "] "
     local width = math.max(50, #title + 4)
     local height = math.max(7, #param_lines + 2)
     local row = math.floor((vim.o.lines - height) / 2)
@@ -431,6 +408,113 @@ function M.telescope_apps()
       return true
     end
   }):find()
+end
+
+function fetch_and_draw()
+  if not vim.api.nvim_buf_is_valid(buf) then
+    if app_list_timer then
+      app_list_timer:stop()
+      app_list_timer:close()
+      app_list_timer = nil
+    end
+    return
+  end
+
+  -- avoid requests if not logged in
+  if not Auth.is_logged_in() then
+    return
+  end
+
+  local res = Api.get_applications()
+  if res.status ~= 200 then
+    vim.schedule(function()
+      vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
+    end)
+    return
+  end
+
+  local json = vim.fn.json_decode(res.body)
+  app_names = {}
+
+  for i, app in ipairs(json.items or {}) do
+    local sync_status = app.status.sync.status or "Unknown"
+    local icon = (sync_status == "Synced") and "✓" or "⚠"
+    local commit_sha = app.status.sync.revision or "unknown"
+    local short_sha = commit_sha:sub(1, 7)
+    local branch = app.spec.source.targetRevision or "unknown"
+
+    app_names[i] = {
+      name = app.metadata.name,
+      icon = icon,
+      sha = short_sha,
+      branch = branch,
+      status = sync_status,
+    }
+  end
+
+  draw_lines()
+
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    buffer = buf,
+    callback = function()
+      vim.schedule(draw_lines)
+    end,
+    desc = "Highlight branch and SHA on current line",
+  })
+end
+
+function draw_lines()
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+
+  local lines = {}
+  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+
+  for i, app in ipairs(app_names) do
+    -- Get status icon and highlight group
+    local status_icon, status_hl
+    if app.status == "Synced" then
+      status_icon = status_icon or "✓"
+      status_hl = status_hl or "String"
+    else
+      status_icon = status_icon or "⚠"
+      status_hl = status_hl or "WarningMsg"
+    end
+
+    -- Build line: status icon + space + app name [+ branch and sha if current line]
+    local base = string.format("%s %s", status_icon, app.name)
+
+    if i == cursor_line then
+      base = base .. string.format(" (%s %s) [%s]", app.branch, app.sha, Auth.get_current_context())
+    end
+
+    lines[i] = base
+  end
+
+  -- Allow temporary buffer modification
+  vim.bo[buf].modifiable = true
+  -- List projects
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  -- Disable buffer modification
+  vim.bo[buf].modifiable = false
+  vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
+
+  for i, app in ipairs(app_names) do
+    -- Highlight entire line segment (status icon + space + app name)
+    local hl_group = (app.status == "Synced") and "String" or "WarningMsg"
+    -- Highlight the base line length
+    local highlight_end = #lines[i]
+    vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, highlight_end)
+
+    -- Highlight branch and sha on current line as comment
+    if i == cursor_line then
+      local comment_pos = lines[i]:find("%(")
+      if comment_pos then
+        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, comment_pos - 1, -1)
+      end
+    end
+  end
 end
 
 return M

@@ -4,119 +4,224 @@ local Auth = {}
 
 local curl = require("plenary.curl")
 
-local config = {
-  host = nil,
-  token = nil,
-}
+local contexts = {}
+local current_context = nil
 local creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
-local logged_in = false
 
-local function load_credentials()
+--- Get the current active context
+function Auth.get_current_context()
+  return current_context
+end
+
+--- Get all available contexts
+function Auth.get_contexts()
+  return contexts
+end
+
+--- Get credentials for a specific context
+---@param context_name string Name of the context
+---@return table|nil Credentials table or nil if not found
+function Auth.get_context_credentials(context_name)
+  return contexts[context_name]
+end
+
+--- Set the current active context
+---@param context_name string Name of the context to activate
+---@return boolean Success status
+function Auth.set_current_context(context_name)
+  if contexts[context_name] then
+    current_context = context_name
+    Auth.save_contexts()
+    return true
+  end
+  return false
+end
+
+--- Add a new context
+---@param context_name string Name of the context
+---@param host string ArgoCD host URL
+---@return boolean Success status
+function Auth.add_context(context_name, host)
+  if contexts[context_name] then
+    return false
+  end
+  contexts[context_name] = {
+    host = host,
+    token = nil,
+    logged_in = false
+  }
+  
+  -- If this is the first context, make it the current context
+  if vim.tbl_count(contexts) == 1 then
+    current_context = context_name
+  end
+  
+  Auth.save_contexts()
+  return true
+end
+
+--- Remove a context
+---@param context_name string Name of the context to remove
+---@return boolean Success status
+function Auth.remove_context(context_name)
+  if not contexts[context_name] then
+    return false
+  end
+  contexts[context_name] = nil
+  if current_context == context_name then
+    current_context = nil
+  end
+  Auth.save_contexts()
+  return true
+end
+
+--- Clear credentials for a specific context
+---@param context_name string Name of the context
+function Auth.clear_context_credentials(context_name)
+  if contexts[context_name] then
+    contexts[context_name].token = nil
+    contexts[context_name].logged_in = false
+  end
+end
+
+--- Clear all credentials
+function Auth.clear_all_credentials()
+  for _, ctx in pairs(contexts) do
+    ctx.token = nil
+    ctx.logged_in = false
+  end
+  current_context = nil
+  Auth.save_contexts()
+end
+
+--- Save all contexts to file
+function Auth.save_contexts()
+  local f = io.open(creds_path, "w")
+  if f then
+    local data = {
+      contexts = contexts,
+      current_context = current_context
+    }
+    f:write(vim.fn.json_encode(data))
+    f:close()
+  end
+end
+
+--- Load contexts from file
+function Auth.load_contexts()
   local f = io.open(creds_path, "r")
   if f then
     local content = f:read("*a")
     f:close()
-    local ok, creds = pcall(vim.fn.json_decode, content)
-    if ok and creds.host and creds.token then
-      config.host = creds.host
-      config.token = creds.token
-      logged_in = true
+    local ok, data = pcall(vim.fn.json_decode, content)
+    if ok and data.contexts then
+      contexts = data.contexts
+      current_context = data.current_context
+      
+      if not current_context then
+        for name, _ in pairs(contexts) do
+          current_context = name
+          break
+        end
+      end
+      
+      for _, ctx in pairs(contexts) do
+        ctx.logged_in = ctx.token ~= nil
+      end
     end
   end
 end
 
-local function save_credentials()
-  local creds = {
-    host = config.host,
-    token = config.token,
-  }
-  local f = io.open(creds_path, "w")
-  if f then
-    f:write(vim.fn.json_encode(creds))
-    f:close()
+--- Clear credentials for the current context
+function Auth.clear_current_credentials()
+  local current = Auth.get_current_context()
+  if current then
+    Auth.clear_context_credentials(current)
+    Auth.save_contexts()
+    vim.notify(string.format("Credentials cleared for context %s", current), vim.log.levels.INFO)
+  else
+    vim.notify("No context selected", vim.log.levels.ERROR)
   end
 end
 
+--- Get host for current context
+function Auth.get_current_host()
+  local current = Auth.get_current_context()
+  if current then
+    local ctx = Auth.get_context_credentials(current)
+    return ctx and ctx.host
+  end
+  return nil
+end
+
+--- Get token for current context
+function Auth.get_current_token()
+  local current = Auth.get_current_context()
+  if current then
+    local ctx = Auth.get_context_credentials(current)
+    return ctx and ctx.token
+  end
+  return nil
+end
+
+--- Check if logged in to current context
+function Auth.is_logged_in()
+  local current = Auth.get_current_context()
+  if current then
+    local ctx = Auth.get_context_credentials(current)
+    return ctx and ctx.logged_in
+  end
+  return false
+end
+
+--- Login to the current context using username and password
 function Auth.lazy_login(callback)
-  if logged_in or (config.token and config.host) then
-    vim.notify("Already logged in to ArgoCD", vim.log.levels.INFO)
+  local current = Auth.get_current_context()
+  if not current then
+    vim.notify("No context selected. Please use :ArgoContextAdd to add a context first.", vim.log.levels.ERROR)
+    return
+  end
+
+  local ctx = Auth.get_context_credentials(current)
+  if ctx and (ctx.logged_in or ctx.token) then
     if callback and type(callback) == "function" then
       callback()
     end
     return
   end
 
-  vim.ui.input({ prompt = "ArgoCD API Host (e.g. https://argocd.example.com): " }, function(host)
-    if not host or host == "" then
-      vim.notify("Host is required", vim.log.levels.ERROR)
+  vim.ui.input({ prompt = "Username: " }, function(user)
+    if not user or user == "" then
+      vim.notify("Username is required", vim.log.levels.ERROR)
       return
     end
-    config.host = host
-    vim.ui.input({ prompt = "Username: " }, function(user)
-      if not user or user == "" then
-        vim.notify("Username is required", vim.log.levels.ERROR)
+    vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
+      if not pass or pass == "" then
+        vim.notify("Password is required", vim.log.levels.ERROR)
         return
       end
-      vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
-        if not pass or pass == "" then
-          vim.notify("Password is required", vim.log.levels.ERROR)
-          return
-        end
 
-        local res = curl.post(config.host .. "/api/v1/session", {
-          body = vim.fn.json_encode({ username = user, password = pass }),
-          headers = { ["Content-Type"] = "application/json" },
-        })
-        if res.status == 200 then
-          local data = vim.fn.json_decode(res.body)
-          config.token = data.token
-          logged_in = true
-          save_credentials()
-          vim.notify("Logged in to ArgoCD", vim.log.levels.INFO)
-          if callback and type(callback) == "function" then
-            callback()
-          end
-        else
-          vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+      local res = curl.post(ctx.host .. "/api/v1/session", {
+        body = vim.fn.json_encode({ username = user, password = pass }),
+        headers = { ["Content-Type"] = "application/json" },
+      })
+      if res.status == 200 then
+        local data = vim.fn.json_decode(res.body)
+        ctx.token = data.token
+        ctx.logged_in = true
+        Auth.save_contexts()
+        vim.notify("Logged in to ArgoCD context " .. current, vim.log.levels.INFO)
+        if callback and type(callback) == "function" then
+          callback()
         end
-      end)
+      else
+        vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+      end
     end)
   end)
 end
 
-function Auth.clear_credentials()
-  config.host = nil
-  config.token = nil
-  logged_in = false
-  -- Attempt to delete the credentials file
-  local ok, err = os.remove(creds_path)
-  if ok then
-    vim.notify("ArgoCD credentials cleared and file removed.", vim.log.levels.INFO)
-  elseif err then -- os.remove returns nil, error message on failure
-    -- If file didn't exist, it's not an error for clearing credentials
-    local f_exists = io.open(creds_path, "r")
-    if f_exists then
-        f_exists:close()
-        vim.notify("Cleared in-memory ArgoCD credentials. Could not remove credentials file: " .. err, vim.log.levels.WARN)
-    else
-        vim.notify("ArgoCD credentials cleared. No credentials file to remove.", vim.log.levels.INFO)
-    end
-  end
-end
-
-function Auth.get_host()
-  return config.host
-end
-
-function Auth.get_token()
-  return config.token
-end
-
-function Auth.is_logged_in()
-  return logged_in
-end
-
--- Load saved credentials on module load
-load_credentials()
+-- Load saved contexts on module load
+Auth.load_contexts()
 
 return Auth

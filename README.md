@@ -37,15 +37,22 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 The plugin uses the ArgoCD API for authentication. Your credentials are stored in a local file called `argocd-credentials.json`.
 
-The plugin will automatically prompt you to login when you first use it. You can also manually trigger the login process using `:ArgoLogin`.
-
-To logout and clear your credentials, use the `:ArgoLogout` command. This will remove the stored credentials from the local configuration file.
-
 > **Important:** Make sure to add `argocd-credentials.json` to your `.gitignore` file to prevent sensitive credentials from being committed to version control.
 
-## Usage
+### Context Management
 
-### Commands
+The plugin supports managing multiple ArgoCD contexts, allowing you to work with different ArgoCD instances simultaneously.
+
+| Command                         | Description                               |
+|---------------------------------|-------------------------------------------|
+| `:ArgoContextList`              | List all available ArgoCD contexts        |
+| `:ArgoContextAdd <name> <host>` | Add a new ArgoCD context with host URL    |
+| `:ArgoContextSwitch <name>`     | Switch to a different ArgoCD context      |
+| `:ArgoContextRemove <name>`     | Remove an ArgoCD context                  |
+| `:ArgoLogin`                    | Login to the current context              |
+| `:ArgoLogout`                   | Logout from the current context           |
+
+## Commands
 
 | Command              | Description                                       |
 |----------------------|---------------------------------------------------|
@@ -54,10 +61,8 @@ To logout and clear your credentials, use the `:ArgoLogout` command. This will r
 | `:ArgoUpdate <app>`  | Update a specific app parameters                  |
 | `:ArgoDelete <app>`  | Delete a specific app                             |
 | `:ArgoPick`          | Telescope picker for app selection and actions    |
-| `:ArgoLogin`         | Manually trigger the login process                |
-| `:ArgoLogout`        | Clear credentials and logout                     |
 
-### Telescope keybindings
+## Telescope keybindings
 
 | Keys    | Action       |
 |---------|--------------|
