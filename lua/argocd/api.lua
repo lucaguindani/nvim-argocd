@@ -33,12 +33,17 @@ function Api.request(method, path, body)
     options.body = vim.fn.json_encode(body)
   end
 
-  -- Perform the request
   local res = curl.request(options)
 
-  -- Check for token expiration or invalid token (common with 401/403)
-  if res.status == 401 or res.status == 403 then
-    vim.notify("ArgoCD token might be expired or invalid. Please try logging out and logging in again.", vim.log.levels.WARN)
+  -- If token expired (401), refresh
+  if res.status == 401 then
+    Auth.clear_current_credentials()
+    -- Refresh token
+    Auth.lazy_login()
+  end
+
+  if res.status == 401 then
+    vim.notify("Failed to refresh token. Please try logging out and logging in again.", vim.log.levels.ERROR)
   end
 
   return res
