@@ -183,10 +183,7 @@ function Auth.get_current_token()
     
     -- Try to refresh token using existing credentials
     if ctx.username and ctx.password then
-      local res = curl.post(ctx.host .. "/api/v1/session", {
-        body = vim.fn.json_encode({ username = ctx.username, password = ctx.password }),
-        headers = { ["Content-Type"] = "application/json" },
-      })
+      local res = Auth.session_request(ctx.username, ctx.password)
       
       if res.status == 200 then
         local data = vim.fn.json_decode(res.body)
@@ -253,10 +250,7 @@ function Auth.lazy_login(callback)
       ctx.username = user
       ctx.password = pass
 
-      local res = curl.post(ctx.host .. "/api/v1/session", {
-        body = vim.fn.json_encode({ username = user, password = pass }),
-        headers = { ["Content-Type"] = "application/json" },
-      })
+      local res = Auth.session_request(user, pass)
       
       if res.status == 200 then
         local data = vim.fn.json_decode(res.body)
@@ -278,6 +272,15 @@ function Auth.lazy_login(callback)
       end
     end)
   end)
+end
+
+-- Perform a session request to the login endpoint
+function Auth.session_request(username, password)
+  local host = Auth.get_current_host()
+  return curl.post(host .. "/api/v1/session", {
+    body = vim.fn.json_encode({ username = username, password = password }),
+    headers = { ["Content-Type"] = "application/json" },
+  })
 end
 
 -- Load saved contexts on module load

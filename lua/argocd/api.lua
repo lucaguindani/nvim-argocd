@@ -5,6 +5,7 @@ local Api = {}
 local Auth = require("argocd.auth")
 local curl = require("plenary.curl")
 
+-- Perform a tokenized request to the ArgoCD API
 function Api.request(method, path, body)
   local host = Auth.get_current_host()
   local token = Auth.get_current_token()
@@ -33,6 +34,7 @@ function Api.request(method, path, body)
     options.body = vim.fn.json_encode(body)
   end
 
+  -- Perform the request
   local res = curl.request(options)
 
   -- If token expired (401), refresh
