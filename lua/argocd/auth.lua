@@ -207,14 +207,17 @@ function Auth.is_token_valid(ctx)
   return ctx and ctx.token_expires and vim.fn.localtime() < ctx.token_expires
 end
 
---- Check if logged in to current context
-function Auth.is_logged_in()
-  local current = Auth.get_current_context()
-  if not current then
+--- Check if logged in to a specific context or the current context
+function Auth.is_logged_in(context)
+  if not context then
+    context = Auth.get_current_context()
+  end
+
+  if not context then
     return nil
   end
-  
-  local ctx = Auth.get_context_credentials(current)
+
+  local ctx = Auth.get_context_credentials(context)
   if not ctx or not ctx.token then
     return nil
   end
@@ -231,15 +234,14 @@ function Auth.lazy_login(callback)
   end
 
   local ctx = Auth.get_context_credentials(current)
-  if Auth.is_token_valid(ctx) then
-    -- Get token with refresh check
-    local token = Auth.get_current_token()
-    if token then
-      if callback and type(callback) == "function" then
-        callback()
-      end
-      return
+
+  local token = Auth.get_current_token()
+  if token then
+    vim.notify("Already logged in to context " .. current, vim.log.levels.INFO)
+    if callback and type(callback) == "function" then
+      callback()
     end
+    return
   end
 
   vim.ui.input({ prompt = "Username: " }, function(user)
