@@ -10,6 +10,8 @@ local creds_path = vim.fn.stdpath("config") .. "/argocd-credentials.json"
 
 -- Token refresh threshold (1 hour before expiration)
 local TOKEN_REFRESH_THRESHOLD = 3600
+-- Token expiration time (24 hours in seconds)
+local TOKEN_EXPIRATION_TIME = 86400
 
 --- Get the current active context
 function Auth.get_current_context()
@@ -51,7 +53,6 @@ function Auth.add_context(context_name, host)
   contexts[context_name] = {
     host = host,
     token = nil,
-    logged_in = false,
     token_expires = nil
   }
   
@@ -87,7 +88,7 @@ function Auth.clear_context_credentials(context_name)
     contexts[context_name].token_expires = nil
     contexts[context_name].username = nil
     contexts[context_name].password = nil
-    contexts[context_name].logged_in = false
+    contexts[context_name].token_expires = nil
     Auth.save_contexts()
   end
 end
@@ -99,7 +100,7 @@ function Auth.clear_all_credentials()
     ctx.token_expires = nil
     ctx.username = nil
     ctx.password = nil
-    ctx.logged_in = false
+    ctx.token_expires = nil
   end
   current_context = nil
   Auth.save_contexts()
@@ -134,10 +135,6 @@ function Auth.load_contexts()
           current_context = name
           break
         end
-      end
-      
-      for _, ctx in pairs(contexts) do
-        ctx.logged_in = ctx.token ~= nil
       end
     end
   end
@@ -188,7 +185,7 @@ function Auth.get_current_token()
       if res.status == 200 then
         local data = vim.fn.json_decode(res.body)
         ctx.token = data.token
-        ctx.token_expires = vim.fn.localtime() + 86400
+        ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
         vim.notify("Token refreshed successfully", vim.log.levels.INFO)
         return ctx.token
@@ -205,14 +202,24 @@ function Auth.get_current_token()
   return ctx.token
 end
 
+--- Check if token validity
+function Auth.is_token_valid(ctx)
+  return ctx and ctx.token_expires and vim.fn.localtime() < ctx.token_expires
+end
+
 --- Check if logged in to current context
 function Auth.is_logged_in()
   local current = Auth.get_current_context()
-  if current then
-    local ctx = Auth.get_context_credentials(current)
-    return ctx and ctx.logged_in
+  if not current then
+    return nil
   end
-  return false
+  
+  local ctx = Auth.get_context_credentials(current)
+  if not ctx or not ctx.token then
+    return nil
+  end
+
+  return Auth.is_token_valid(ctx)
 end
 
 --- Login to the current context using username and password
@@ -224,7 +231,7 @@ function Auth.lazy_login(callback)
   end
 
   local ctx = Auth.get_context_credentials(current)
-  if ctx and (ctx.logged_in or ctx.token) then
+  if Auth.is_token_valid(ctx) then
     -- Get token with refresh check
     local token = Auth.get_current_token()
     if token then
@@ -256,8 +263,7 @@ function Auth.lazy_login(callback)
         local data = vim.fn.json_decode(res.body)
         ctx.token = data.token
         -- Calculate token expiration time (24h from now)
-        ctx.token_expires = vim.fn.localtime() + 86400
-        ctx.logged_in = true
+        ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
         vim.notify("Logged in to ArgoCD context " .. current, vim.log.levels.INFO)
         if callback and type(callback) == "function" then

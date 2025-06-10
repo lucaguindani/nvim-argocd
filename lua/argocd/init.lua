@@ -24,7 +24,7 @@ function M.list_contexts()
       name == current and "* " or "  ",
       name,
       ctx.host,
-      ctx.logged_in and "logged in" or "not logged in"
+      Auth.is_logged_in(ctx) and "logged in" or "not logged_in"
     ))
   end
   vim.notify(table.concat(items, "\n"), vim.log.levels.INFO)
