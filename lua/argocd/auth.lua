@@ -256,7 +256,7 @@ function Auth.lazy_login(callback)
         -- Calculate token expiration time (24h from now)
         ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
-        vim.notify("Logged in to ArgoCD context " .. current, vim.log.levels.INFO)
+        vim.notify("Logged in to \"" ..  current .. "\" context", vim.log.levels.INFO)
         if callback and type(callback) == "function" then
           callback()
         end

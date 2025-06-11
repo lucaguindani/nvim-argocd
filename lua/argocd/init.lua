@@ -88,6 +88,12 @@ function M.clear_current_credentials()
 end
 
 function M.lazy_login(callback)
+  if Auth.is_logged_in() then
+    vim.notify("Already logged in to \"" .. Auth.get_current_context() .. "\" context", vim.log.levels.INFO)
+    if callback then callback(true) end
+    return
+  end
+
   Auth.lazy_login(callback)
 end
 
