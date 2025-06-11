@@ -24,15 +24,11 @@ function Auth.get_contexts()
 end
 
 --- Get credentials for a specific context
----@param context_name string Name of the context
----@return table|nil Credentials table or nil if not found
 function Auth.get_context_credentials(context_name)
   return contexts[context_name]
 end
 
 --- Set the current active context
----@param context_name string Name of the context to activate
----@return boolean Success status
 function Auth.set_current_context(context_name)
   if contexts[context_name] then
     current_context = context_name
@@ -43,9 +39,6 @@ function Auth.set_current_context(context_name)
 end
 
 --- Add a new context
----@param context_name string Name of the context
----@param host string ArgoCD host URL
----@return boolean Success status
 function Auth.add_context(context_name, host)
   if contexts[context_name] then
     return false
@@ -66,8 +59,6 @@ function Auth.add_context(context_name, host)
 end
 
 --- Remove a context
----@param context_name string Name of the context to remove
----@return boolean Success status
 function Auth.remove_context(context_name)
   if not contexts[context_name] then
     return false
@@ -81,7 +72,6 @@ function Auth.remove_context(context_name)
 end
 
 --- Clear credentials for a specific context
----@param context_name string Name of the context
 function Auth.clear_context_credentials(context_name)
   if contexts[context_name] then
     contexts[context_name].token = nil
@@ -237,7 +227,6 @@ function Auth.lazy_login(callback)
 
   local token = Auth.get_current_token()
   if token then
-    vim.notify("Already logged in to context " .. current, vim.log.levels.INFO)
     if callback and type(callback) == "function" then
       callback()
     end
