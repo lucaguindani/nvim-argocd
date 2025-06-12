@@ -36,7 +36,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## Authentication
 
-The plugin uses the ArgoCD API for authentication. Your credentials are no longer stored in the `argocd-credentials.json` file.
+The plugin uses the ArgoCD API for authentication. Your credentials are stored in a local file called `argocd-credentials.json`.
 
 ### Context management
 
