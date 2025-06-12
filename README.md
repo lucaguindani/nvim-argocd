@@ -62,10 +62,10 @@ export ARGOCD_USERNAME_<CONTEXT_NAME>="your-username"
 export ARGOCD_PASSWORD_<CONTEXT_NAME>="your-password"
 ```
 
-For example, for a context named "prod":
+For example, for a context named "stage":
 ```bash
-export ARGOCD_USERNAME_PROD="your-username"
-export ARGOCD_PASSWORD_PROD="your-password"
+export ARGOCD_USERNAME_STAGE="your-username"
+export ARGOCD_PASSWORD_STAGE="your-password"
 ```
 
 ## Commands
