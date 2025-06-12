@@ -38,11 +38,11 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
 
 The plugin uses the ArgoCD API for authentication. Your credentials are stored in a local file called `argocd-credentials.json`.
 
-> **Important:** Make sure to add `argocd-credentials.json` to your `.gitignore` file to prevent sensitive credentials from being committed to version control.
-
-### Context Management
+### Context management
 
 The plugin supports managing multiple ArgoCD contexts, allowing you to work with different ArgoCD instances simultaneously.
+
+First, add a context using the `:ArgoContextAdd <name> <host>` command, where `<name>` is a unique identifier for your context and `<host>` is the URL of your ArgoCD instance. If you haven't logged in yet with `:ArgoLogin`, you'll be prompted to do so. Upon successful login, you'll receive a token valid for 24 hours. When the token expires, the plugin will attempt to automatically renew it using the environment variables if they are set (see [Token auto-renewal](#token-auto-renewal) for details). If not, you'll be prompted to re-enter your credentials.
 
 | Command                         | Description                               |
 |---------------------------------|-------------------------------------------|
@@ -52,6 +52,21 @@ The plugin supports managing multiple ArgoCD contexts, allowing you to work with
 | `:ArgoContextRemove <name>`     | Remove an ArgoCD context                  |
 | `:ArgoLogin`                    | Login to the current context              |
 | `:ArgoLogout`                   | Logout from the current context           |
+
+### Token auto-renewal
+
+To enable automatic token renewal for a context, set the following environment variables:
+
+```bash
+export ARGOCD_USERNAME_<CONTEXT_NAME>="your-username"
+export ARGOCD_PASSWORD_<CONTEXT_NAME>="your-password"
+```
+
+For example, for a context named "stage":
+```bash
+export ARGOCD_USERNAME_STAGE="your-username"
+export ARGOCD_PASSWORD_STAGE="your-password"
+```
 
 ## Commands
 

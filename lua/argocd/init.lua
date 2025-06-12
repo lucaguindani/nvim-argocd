@@ -24,15 +24,13 @@ function M.list_contexts()
       name == current and "* " or "  ",
       name,
       ctx.host,
-      ctx.logged_in and "logged in" or "not logged in"
+      Auth.is_logged_in(name) and "logged in" or "not logged_in"
     ))
   end
   vim.notify(table.concat(items, "\n"), vim.log.levels.INFO)
 end
 
 --- Add a new context
----@param context_name string Name of the context
----@param host string ArgoCD host URL
 function M.add_context(context_name, host)
   if not context_name or not host then
     vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
@@ -47,7 +45,6 @@ function M.add_context(context_name, host)
 end
 
 --- Switch to a different context
----@param context_name string Name of the context to switch to
 function M.switch_context(context_name)
   if not context_name then
     vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
@@ -72,7 +69,6 @@ function M.switch_context(context_name)
 end
 
 --- Remove a context
----@param context_name string Name of the context to remove
 function M.remove_context(context_name)
   if not context_name then
     vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
@@ -92,6 +88,12 @@ function M.clear_current_credentials()
 end
 
 function M.lazy_login(callback)
+  if Auth.is_logged_in() then
+    vim.notify("Already logged in to \"" .. Auth.get_current_context() .. "\" context", vim.log.levels.INFO)
+    if callback then callback(true) end
+    return
+  end
+
   Auth.lazy_login(callback)
 end
 
