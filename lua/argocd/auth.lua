@@ -76,9 +76,6 @@ function Auth.clear_context_credentials(context_name)
   if contexts[context_name] then
     contexts[context_name].token = nil
     contexts[context_name].token_expires = nil
-    contexts[context_name].username = nil
-    contexts[context_name].password = nil
-    contexts[context_name].token_expires = nil
     Auth.save_contexts()
   end
 end
@@ -87,9 +84,6 @@ end
 function Auth.clear_all_credentials()
   for _, ctx in pairs(contexts) do
     ctx.token = nil
-    ctx.token_expires = nil
-    ctx.username = nil
-    ctx.password = nil
     ctx.token_expires = nil
   end
   current_context = nil
@@ -168,24 +162,30 @@ function Auth.get_current_token()
     -- Token is expired or close to expiration - attempt to refresh
     vim.notify("Token is expired or close to expiration. Attempting to refresh...", vim.log.levels.INFO)
     
-    -- Try to refresh token using existing credentials
-    if ctx.username and ctx.password then
-      local res = Auth.session_request(ctx.username, ctx.password)
+    -- Try to refresh token using environment variables
+    local username_env = string.format("ARGOCD_USERNAME_%s", string.upper(current))
+    local password_env = string.format("ARGOCD_PASSWORD_%s", string.upper(current))
+    local username = vim.env[username_env]
+    local password = vim.env[password_env]
+    
+    if username and password then
+      local res = Auth.session_request(username, password)
       
       if res.status == 200 then
         local data = vim.fn.json_decode(res.body)
         ctx.token = data.token
         ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
-        vim.notify("Token refreshed successfully", vim.log.levels.INFO)
+        vim.notify("Token refreshed successfully using environment variables", vim.log.levels.INFO)
         return ctx.token
       else
         vim.notify("Token refresh failed: " .. res.body, vim.log.levels.ERROR)
         return nil
       end
     end
+ 
+    vim.notify("No credentials found in environment variables for \"" .. current .. "\" context", vim.log.levels.WARN)
     
-    -- If we can't refresh, return nil to force re-login
     return nil
   end
   
@@ -244,10 +244,6 @@ function Auth.lazy_login(callback)
         return
       end
 
-      -- Store credentials for token refresh
-      ctx.username = user
-      ctx.password = pass
-
       local res = Auth.session_request(user, pass)
       
       if res.status == 200 then
@@ -262,10 +258,6 @@ function Auth.lazy_login(callback)
         end
       else
         vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
-        -- Clear stored credentials on failed login
-        ctx.username = nil
-        ctx.password = nil
-        Auth.save_contexts()
       end
     end)
   end)
