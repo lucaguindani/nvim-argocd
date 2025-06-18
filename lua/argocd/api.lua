@@ -4,6 +4,7 @@ local Api = {}
 
 local Auth = require("argocd.auth")
 local curl = require("plenary.curl")
+local notify = require("notify")
 
 -- Perform a tokenized request to the ArgoCD API
 function Api.request(method, path, body)
@@ -11,7 +12,7 @@ function Api.request(method, path, body)
   local token = Auth.get_current_token()
 
   if not host or not token then
-    vim.notify("Cannot make API request: Not logged in to current context or host/token missing.", vim.log.levels.ERROR)
+    notify("Cannot make API request: Not logged in to current context or host/token missing.", "ERROR", { title = "Nvim-ArgoCD" })
     return {
       status = 401,
       body = "Not logged in to current context or missing host/token",
@@ -45,7 +46,7 @@ function Api.request(method, path, body)
   end
 
   if res.status == 401 then
-    vim.notify("Failed to refresh token. Please try logging out and logging in again.", vim.log.levels.ERROR)
+    notify("Failed to refresh token. Please try logging out and logging in again.", "ERROR", { title = "Nvim-ArgoCD" })
   end
 
   return res
@@ -53,6 +54,10 @@ end
 
 function Api.get_applications()
   return Api.request("get", "/api/v1/applications")
+end
+
+function Api.refresh_application(app_name)
+  return Api.request("get", "/api/v1/applications/" .. app_name .. "?refresh=hard")
 end
 
 function Api.get_application_details(app_name)
@@ -66,7 +71,7 @@ end
 
 function Api.update_application_params(app_name, patch_body)
   if not patch_body then
-    vim.notify("Patch body is required for update_application_params", vim.log.levels.ERROR)
+    notify("Patch body is required for update_application_params", "ERROR", { title = "ArgoUpdate" })
     return { status = 400, body = "Patch body required" }
   end
 
@@ -98,13 +103,13 @@ end
 
 function Api.check_application_exists(app_name)
   if not app_name or app_name == "" then
-    vim.notify("Application name is required", vim.log.levels.ERROR)
+    notify("Application name is required", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
     return false, { status = 400, body = "Application name required" }
   end
 
   local apps_res = Api.get_applications()
   if apps_res.status ~= 200 then
-    vim.notify("Failed to fetch applications list", vim.log.levels.ERROR)
+    notify("Failed to fetch applications list", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
     return false, { status = 400, body = "Failed to fetch applications list" }
   end
 

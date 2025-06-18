@@ -18,7 +18,18 @@ end
 -- Check if plenary is installed
 local plenary_ok, _ = pcall(require, "plenary")
 if not plenary_ok then
-  vim.notify("[argocd.nvim] requires plenary", vim.log.levels.WARN)
+  vim.notify("[argocd.nvim] plenary.nvim is not installed!", vim.log.levels.ERROR)
+end
+
+-- Check if notify is installed
+local notify_ok, notify = pcall(require, "notify")
+if not notify_ok then
+  vim.notify("[argocd.nvim] notify.nvim is not installed!", vim.log.levels.ERROR)
+else
+  notify.setup({
+    render = "default",
+    timeout = 3500,
+  })
 end
 
 -- Set up the plugin with default commands
@@ -29,6 +40,10 @@ end, {})
 
 vim.api.nvim_create_user_command("ArgoSync", function(opts)
   argocd.sync_app(opts.args)
+end, { nargs = 1 })
+
+vim.api.nvim_create_user_command("ArgoRefresh", function(opts)
+  argocd.refresh_app(opts.args)
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoDelete", function(opts)
@@ -58,7 +73,7 @@ end, {})
 vim.api.nvim_create_user_command("ArgoContextAdd", function(opts)
   local args = vim.split(opts.args, " ", { plain = true })
   if #args ~= 2 then
-    vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR, { title = "ArgoContextAdd" })
     return
   end
   argocd.add_context(args[1], args[2])
@@ -66,7 +81,7 @@ end, { nargs = "*" })
 
 vim.api.nvim_create_user_command("ArgoContextSwitch", function(opts)
   if opts.args == "" then
-    vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR, { title = "ArgoContextSwitch" })
     return
   end
   argocd.switch_context(opts.args)
@@ -74,7 +89,7 @@ end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("ArgoContextRemove", function(opts)
   if opts.args == "" then
-    vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR, { title = "ArgoContextRemove" })
     return
   end
   argocd.remove_context(opts.args)

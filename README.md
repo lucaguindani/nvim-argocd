@@ -9,6 +9,7 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 
 - Manage multiple applications in an horizontal split buffer
 - Sync an application
+- Hard refresh an application
 - Update an application parameters
 - Delete an application
 - Use Telescope picker with keybindings
@@ -29,6 +30,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   branch = "main",
   dependencies = {
     "nvim-lua/plenary.nvim",
+    "rcarriga/nvim-notify",
     "nvim-telescope/telescope.nvim", -- optional
   },
 }
@@ -70,13 +72,14 @@ export ARGOCD_PASSWORD_STAGE="your-password"
 
 ## Commands
 
-| Command              | Description                                       |
-|----------------------|---------------------------------------------------|
-| `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete)          |
-| `:ArgoSync <app>`    | Sync a specific app                               |
-| `:ArgoUpdate <app>`  | Update a specific app parameters                  |
-| `:ArgoDelete <app>`  | Delete a specific app                             |
-| `:ArgoPick`          | Telescope picker for app selection and actions    |
+| Command              | Description                                           |
+|----------------------|-------------------------------------------------------|
+| `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete, r=Refresh)   |
+| `:ArgoSync <app>`    | Sync a specific app                                   |
+| `:ArgoRefresh <app>` | Hard refresh of a specific app state                  |
+| `:ArgoUpdate <app>`  | Update a specific app parameters                      |
+| `:ArgoDelete <app>`  | Delete a specific app                                 |
+| `:ArgoPick`          | Telescope picker for app selection and actions        |
 
 ## Telescope keybindings
 
@@ -84,6 +87,7 @@ export ARGOCD_PASSWORD_STAGE="your-password"
 |---------|--------------|
 | `<CR>`  | Sync app     |
 | `<C-s>` | Sync app     |
+| `<C-f>` | Refresh app  |
 | `<C-u>` | Update app   |
 | `<C-d>` | Delete app   |
 

@@ -4,6 +4,7 @@ local M = {}
 
 local Auth = require("argocd.auth")
 local Api = require("argocd.api")
+local notify = require("notify")
 
 local app_list_timer = nil
 local buf = nil -- Buffer for the app list
@@ -13,7 +14,7 @@ local app_names = {} -- Stores app data for the list
 function M.list_contexts()
   local contexts = Auth.get_contexts()
   if vim.tbl_isempty(contexts) then
-    vim.notify("No contexts configured. Use :ArgoContextAdd to add a new context.", vim.log.levels.INFO)
+    notify("No contexts configured. Use :ArgoContextAdd to add a new context.", vim.log.levels.INFO, { title = "ArgoContextList" })
     return
   end
 
@@ -27,32 +28,32 @@ function M.list_contexts()
       Auth.is_logged_in(name) and "logged in" or "not logged_in"
     ))
   end
-  vim.notify(table.concat(items, "\n"), vim.log.levels.INFO)
+  notify(table.concat(items, "\n"), vim.log.levels.INFO, { title = "ArgoContextList", timeout = 6500 })
 end
 
 --- Add a new context
 function M.add_context(context_name, host)
   if not context_name or not host then
-    vim.notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextAdd <name> <host>", vim.log.levels.ERROR, { title = "ArgoContextAdd" })
     return
   end
 
   if Auth.add_context(context_name, host) then
-    vim.notify(string.format("Added context '%s' with host '%s'", context_name, host), vim.log.levels.INFO)
+    notify(string.format("Added context '%s' with host '%s'", context_name, host), vim.log.levels.INFO, { title = "ArgoContextAdd" })
   else
-    vim.notify(string.format("Context '%s' already exists", context_name), vim.log.levels.ERROR)
+    notify(string.format("Context '%s' already exists", context_name), vim.log.levels.ERROR, { title = "ArgoContextAdd" })
   end
 end
 
 --- Switch to a different context
 function M.switch_context(context_name)
   if not context_name then
-    vim.notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextSwitch <name>", vim.log.levels.ERROR, { title = "ArgoContextSwitch" })
     return
   end
 
   if Auth.set_current_context(context_name) then
-    vim.notify(string.format("Switched to context '%s'", context_name), vim.log.levels.INFO)
+    notify(string.format("Switched to context '%s'", context_name), vim.log.levels.INFO, { title = "ArgoContextSwitch" })
 
     -- If the app list window is open, fetch and redraw immediately
     if buf and vim.api.nvim_buf_is_valid(buf) then
@@ -64,21 +65,21 @@ function M.switch_context(context_name)
       fetch_and_draw()
     end
   else
-    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+    notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR, { title = "ArgoContextSwitch" })
   end
 end
 
 --- Remove a context
 function M.remove_context(context_name)
   if not context_name then
-    vim.notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR)
+    notify("Usage: :ArgoContextRemove <name>", vim.log.levels.ERROR, { title = "ArgoContextRemove" })
     return
   end
 
   if Auth.remove_context(context_name) then
-    vim.notify(string.format("Removed context '%s'", context_name), vim.log.levels.INFO)
+    notify(string.format("Removed context '%s'", context_name), vim.log.levels.INFO, { title = "ArgoContextRemove" })
   else
-    vim.notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR)
+    notify(string.format("Context '%s' does not exist", context_name), vim.log.levels.ERROR, { title = "ArgoContextRemove" })
   end
 end
 
@@ -89,7 +90,7 @@ end
 
 function M.lazy_login(callback)
   if Auth.is_logged_in() then
-    vim.notify("Already logged in to \"" .. Auth.get_current_context() .. "\" context", vim.log.levels.INFO)
+    notify("Already logged in to \"" .. Auth.get_current_context() .. "\" context", vim.log.levels.INFO, { title = "ArgoLogin" })
     if callback then callback(true) end
     return
   end
@@ -167,6 +168,18 @@ function M.list_apps()
       end,
     })
 
+    -- Set key to refresh all projects
+    vim.api.nvim_buf_set_keymap(buf, "n", "r", "", {
+      noremap = true,
+      silent = true,
+      callback = function()
+        local line_nr = vim.api.nvim_win_get_cursor(0)[1]
+        local app = app_names[line_nr]
+        if not app then return end
+        M.refresh_app(app.name)
+      end,
+    })
+
     fetch_and_draw()
 
     -- Start the timer and save the handle
@@ -191,14 +204,14 @@ end
 function M.update_app(app_name)
   Auth.lazy_login(function()
     if not app_name or app_name == "" then
-      vim.notify("Usage: :ArgoUpdate <app-name>", vim.log.levels.WARN)
+      notify("Usage: :ArgoUpdate <app-name>", vim.log.levels.WARN, { title = "ArgoUpdate" })
       return
     end
 
     -- Fetch full app data
     local res = Api.get_application_details(app_name)
     if res.status ~= 200 then
-      vim.notify("Failed to fetch app: " .. res.body, vim.log.levels.ERROR)
+      notify("Failed to fetch app: " .. res.body, vim.log.levels.ERROR, { title = "ArgoUpdate" })
       return
     end
     local app_data = vim.fn.json_decode(res.body)
@@ -270,10 +283,10 @@ function M.update_app(app_name)
         }
         local patch_res = Api.update_application_params(app_name, patch_body)
         if patch_res.status == 200 then
-          vim.notify("Parameters updated for " .. app_name, vim.log.levels.INFO)
+          notify("Parameters updated for " .. app_name, vim.log.levels.INFO, { title = "ArgoUpdate" })
           vim.api.nvim_win_close(win, true)
         else
-          vim.notify("Update failed: " .. patch_res.body, vim.log.levels.ERROR)
+          notify("Update failed: " .. patch_res.body, vim.log.levels.ERROR, { title = "ArgoUpdate" })
         end
       end,
     })
@@ -295,12 +308,12 @@ end
 function M.sync_app(app_name)
   Auth.lazy_login(function()
     if not app_name or app_name == "" then
-      vim.notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN)
+      notify("Usage: :ArgoSync <app-name>", vim.log.levels.WARN, { title = "ArgoSync" })
       return
     end
     local res = Api.get_application_details(app_name)
     if res.status ~= 200 then
-      vim.notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR)
+      notify("Failed to fetch app status: " .. res.body, vim.log.levels.ERROR, { title = "ArgoSync" })
       return
     end
     local app_data = vim.fn.json_decode(res.body)
@@ -312,16 +325,31 @@ function M.sync_app(app_name)
         if choice == "Yes" then
           local res = Api.sync_application(app_name)
           if res.status == 200 then
-            vim.notify("Sync triggered for " .. app_name, vim.log.levels.INFO)
+            notify("Sync triggered for " .. app_name, vim.log.levels.INFO, { title = "ArgoSync" })
           else
-            vim.notify("Sync failed: " .. res.body, vim.log.levels.ERROR)
+            notify("Sync failed: " .. res.body, vim.log.levels.ERROR, { title = "ArgoSync" })
           end
         else
-          vim.notify("Sync cancelled", vim.log.levels.INFO)
+          notify("Sync cancelled", vim.log.levels.INFO, { title = "ArgoSync" })
         end
       end)
     else
-      vim.notify(app_name .. " is already synced.", vim.log.levels.INFO)
+      notify(app_name .. " is already synced.", vim.log.levels.INFO, { title = "ArgoSync" })
+    end
+  end)
+end
+
+function M.refresh_app(app_name)
+  Auth.lazy_login(function()
+    if not app_name or app_name == "" then
+      notify("Usage: :ArgoRefresh <app-name>", vim.log.levels.WARN, { title = "ArgoRefresh" })
+      return
+    end
+    local res = Api.refresh_application(app_name)
+    if res.status == 200 then
+      notify("Refreshed " .. app_name .. " state", vim.log.levels.INFO, { title = "ArgoRefresh" })
+    else
+      notify("Application state refresh failed: " .. res.body, vim.log.levels.ERROR, { title = "ArgoRefresh" })
     end
   end)
 end
@@ -329,7 +357,7 @@ end
 function M.delete_app(app_name)
   Auth.lazy_login(function()
     if not app_name or app_name == "" then
-      vim.notify("Usage: :ArgoDelete <app-name>", vim.log.levels.WARN)
+      notify("Usage: :ArgoDelete <app-name>", vim.log.levels.WARN, { title = "ArgoDelete" })
       return
     end
     vim.ui.select({"No", "Yes"}, {
@@ -338,12 +366,12 @@ function M.delete_app(app_name)
       if choice == "Yes" then
         local res = Api.delete_application(app_name)
         if res.status == 200 then
-          vim.notify("Deleted " .. app_name, vim.log.levels.INFO)
+          notify("Deleted " .. app_name, vim.log.levels.INFO, { title = "ArgoDelete" })
         else
-          vim.notify("Delete failed: " .. res.body, vim.log.levels.ERROR)
+          notify("Delete failed: " .. res.body, vim.log.levels.ERROR, { title = "ArgoDelete" })
         end
       else
-        vim.notify("Delete cancelled", vim.log.levels.INFO)
+        notify("Delete cancelled", vim.log.levels.INFO, { title = "ArgoDelete" })
       end
     end)
   end)
@@ -353,7 +381,7 @@ function M.telescope_apps()
   local has_telescope = pcall(require, "telescope")
 
   if not has_telescope then
-    vim.notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.WARN)
+    notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.WARN, { title = "ArgoPick" })
     return nil
   end
 
@@ -365,7 +393,7 @@ function M.telescope_apps()
 
   local res = Api.get_applications()
   if res.status ~= 200 then
-    vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
+    notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR, { title = "ArgoPick" })
     return
   end
 
@@ -400,6 +428,12 @@ function M.telescope_apps()
           M.delete_app(selection[1])
         end
       end)
+      map('i', '<C-f>', function()
+        local selection = action_state.get_selected_entry()
+        if selection and selection[1] then
+          M.refresh_app(selection[1])
+        end
+      end)
       actions.select_default:replace(function()
         actions.close(prompt_bufnr)
         local selection = action_state.get_selected_entry()
@@ -429,9 +463,7 @@ function fetch_and_draw()
 
   local res = Api.get_applications()
   if res.status ~= 200 then
-    vim.schedule(function()
-      vim.notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR)
-    end)
+    notify("Failed to fetch apps: " .. res.body, vim.log.levels.ERROR, { title = "ArgoList" })
     return
   end
 

@@ -3,6 +3,7 @@
 local Auth = {}
 
 local curl = require("plenary.curl")
+local notify = require("notify")
 
 local contexts = {}
 local current_context = nil
@@ -129,9 +130,9 @@ function Auth.clear_current_credentials()
   local current = Auth.get_current_context()
   if current then
     Auth.clear_context_credentials(current)
-    vim.notify(string.format("Credentials cleared for context %s", current), vim.log.levels.INFO)
+    notify(string.format("Credentials cleared for context %s", current), vim.log.levels.INFO, { title = "Nvim-ArgoCD" })
   else
-    vim.notify("No context selected", vim.log.levels.ERROR)
+    notify("No context selected", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
   end
 end
 
@@ -160,7 +161,7 @@ function Auth.get_current_token()
   -- Check if token is expired or close to expiration
   if ctx.token_expires and vim.fn.localtime() >= ctx.token_expires - TOKEN_REFRESH_THRESHOLD then
     -- Token is expired or close to expiration - attempt to refresh
-    vim.notify("Token is expired or close to expiration. Attempting to refresh...", vim.log.levels.INFO)
+    notify("Token is expired or close to expiration. Attempting to refresh...", vim.log.levels.INFO, { title = "Nvim-ArgoCD" })
     
     -- Try to refresh token using environment variables
     local username_env = string.format("ARGOCD_USERNAME_%s", string.upper(current))
@@ -176,15 +177,15 @@ function Auth.get_current_token()
         ctx.token = data.token
         ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
-        vim.notify("Token refreshed successfully using environment variables", vim.log.levels.INFO)
+        notify("Token refreshed successfully using environment variables", vim.log.levels.INFO, { title = "Nvim-ArgoCD" })
         return ctx.token
       else
-        vim.notify("Token refresh failed: " .. res.body, vim.log.levels.ERROR)
+        notify("Token refresh failed: " .. res.body, vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
         return nil
       end
     end
  
-    vim.notify("No credentials found in environment variables for \"" .. current .. "\" context", vim.log.levels.WARN)
+    notify("No credentials found in environment variables for \"" .. current .. "\" context", vim.log.levels.WARN, { title = "Nvim-ArgoCD" })
     
     return nil
   end
@@ -219,7 +220,7 @@ end
 function Auth.lazy_login(callback)
   local current = Auth.get_current_context()
   if not current then
-    vim.notify("No context selected. Please use :ArgoContextAdd to add a context first.", vim.log.levels.ERROR)
+    notify("No context selected. Please use :ArgoContextAdd to add a context first.", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
     return
   end
 
@@ -235,12 +236,12 @@ function Auth.lazy_login(callback)
 
   vim.ui.input({ prompt = "Username: " }, function(user)
     if not user or user == "" then
-      vim.notify("Username is required", vim.log.levels.ERROR)
+      notify("Username is required", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
       return
     end
     vim.ui.input({ prompt = "Password: ", secret = true }, function(pass)
       if not pass or pass == "" then
-        vim.notify("Password is required", vim.log.levels.ERROR)
+        notify("Password is required", vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
         return
       end
 
@@ -252,12 +253,12 @@ function Auth.lazy_login(callback)
         -- Calculate token expiration time (24h from now)
         ctx.token_expires = vim.fn.localtime() + TOKEN_EXPIRATION_TIME
         Auth.save_contexts()
-        vim.notify("Logged in to \"" ..  current .. "\" context", vim.log.levels.INFO)
+        notify("Logged in to \"" ..  current .. "\" context", vim.log.levels.INFO, { title = "Nvim-ArgoCD" })
         if callback and type(callback) == "function" then
           callback()
         end
       else
-        vim.notify("Login failed: " .. res.body, vim.log.levels.ERROR)
+        notify("Login failed: " .. res.body, vim.log.levels.ERROR, { title = "Nvim-ArgoCD" })
       end
     end)
   end)
