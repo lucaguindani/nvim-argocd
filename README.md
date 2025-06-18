@@ -44,7 +44,7 @@ The plugin uses the ArgoCD API for authentication. Your credentials are stored i
 
 The plugin supports managing multiple ArgoCD contexts, allowing you to work with different ArgoCD instances simultaneously.
 
-First, add a context using the `:ArgoContextAdd <name> <host>` command, where `<name>` is a unique identifier for your context and `<host>` is the URL of your ArgoCD instance. If you haven't logged in yet with `:ArgoLogin`, you'll be prompted to do so. Upon successful login, you'll receive a token valid for 24 hours. When the token expires, the plugin will attempt to automatically renew it using the environment variables if they are set (see [Token auto-renewal](#token-auto-renewal) for details). If not, you'll be prompted to re-enter your credentials.
+First, add a context using the `:ArgoContextAdd <name> <host>` command, where `<name>` is a unique identifier for your context and `<host>` is the URL of your ArgoCD instance. If you haven't logged in yet with `:ArgoLogin`, you'll be prompted to do so. Upon successful login, you'll receive a token with a 24 hours validity. When the token expires, the plugin will attempt to automatically renew it using the environment variables if they are set (see [Token auto-renewal](#token-auto-renewal) for details). If not, you'll be prompted to re-enter your credentials.
 
 | Command                         | Description                               |
 |---------------------------------|-------------------------------------------|
