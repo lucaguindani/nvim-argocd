@@ -1,7 +1,8 @@
 # ArgoCD Neovim Plugin
 
-A lightweight Neovim plugin to control [ArgoCD](https://argoproj.github.io/) applications directly from your editor.  
-Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for easy app selection and actions.
+A lightweight Neovim plugin to control [ArgoCD](https://argoproj.github.io/) applications directly from your editor.
+
+Supports [Lazy.nvim](https://github.com/folke/lazy.nvim) setup and optionally integrates with [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for easy app selection and actions, and [nvim-notify](https://github.com/rcarriga/nvim-notify) for improved notifications. If you decide to use [nvim-notify](https://github.com/rcarriga/nvim-notify), make sure to use a font which supported glyphs (for instance [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)).
 
 ---
 
@@ -18,7 +19,8 @@ Supports Lazy.nvim setup and integrates with [Telescope.nvim](https://github.com
 ## Requirements
 
 - Neovim 0.7+
-- Telescope.nvim (optional)
+- nvim-notify (optional)
+- telescope.nvim (optional)
 
 ## Installation
 
@@ -30,7 +32,7 @@ Using [Lazy.nvim](https://github.com/folke/lazy.nvim):
   branch = "main",
   dependencies = {
     "nvim-lua/plenary.nvim",
-    "rcarriga/nvim-notify",
+    "rcarriga/nvim-notify", -- optional
     "nvim-telescope/telescope.nvim", -- optional
   },
 }

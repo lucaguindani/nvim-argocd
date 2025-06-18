@@ -24,7 +24,8 @@ end
 -- Check if notify is installed
 local notify_ok, notify = pcall(require, "notify")
 if not notify_ok then
-  vim.notify("[argocd.nvim] notify.nvim is not installed!", vim.log.levels.ERROR)
+  notify = vim.notify
+  vim.notify("[argocd.nvim] notify.nvim is not installed!", vim.log.levels.INFO)
 else
   notify.setup({
     render = "default",

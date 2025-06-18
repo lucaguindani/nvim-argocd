@@ -3,7 +3,10 @@
 local Auth = {}
 
 local curl = require("plenary.curl")
-local notify = require("notify")
+local notify_ok, notify = pcall(require, "notify")
+if not notify_ok then
+    notify = vim.notify
+end
 
 local contexts = {}
 local current_context = nil

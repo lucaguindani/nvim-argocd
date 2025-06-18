@@ -4,7 +4,10 @@ local M = {}
 
 local Auth = require("argocd.auth")
 local Api = require("argocd.api")
-local notify = require("notify")
+local notify_ok, notify = pcall(require, "notify")
+if not notify_ok then
+    notify = vim.notify
+end
 
 local app_list_timer = nil
 local buf = nil -- Buffer for the app list
@@ -381,7 +384,7 @@ function M.telescope_apps()
   local has_telescope = pcall(require, "telescope")
 
   if not has_telescope then
-    notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.WARN, { title = "ArgoPick" })
+    notify("[nvim-argocd] telescope.nvim is not installed!", vim.log.levels.INFO, { title = "ArgoPick" })
     return nil
   end
 

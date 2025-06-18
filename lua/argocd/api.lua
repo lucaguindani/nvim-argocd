@@ -4,7 +4,10 @@ local Api = {}
 
 local Auth = require("argocd.auth")
 local curl = require("plenary.curl")
-local notify = require("notify")
+local notify_ok, notify = pcall(require, "notify")
+if not notify_ok then
+    notify = vim.notify
+end
 
 -- Perform a tokenized request to the ArgoCD API
 function Api.request(method, path, body)
