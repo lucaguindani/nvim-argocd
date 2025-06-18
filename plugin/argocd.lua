@@ -28,6 +28,7 @@ if not notify_ok then
 else
   notify.setup({
     render = "default",
+    stages = "fade",
     timeout = 3500,
   })
 end
