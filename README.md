@@ -57,7 +57,7 @@ First, add a context using the `:ArgoContextAdd <name> <host>` command, where `<
 | `:ArgoLogin`                    | Login to the current context              |
 | `:ArgoLogout`                   | Logout from the current context           |
 
-### Token auto-renewal
+### Token auto-renewal (optional)
 
 To enable automatic token renewal for a context, set the following environment variables:
 
