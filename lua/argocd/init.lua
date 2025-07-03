@@ -475,17 +475,17 @@ function fetch_and_draw()
 
   for i, app in ipairs(json.items or {}) do
     local sync_status = app.status.sync.status or "Unknown"
-    local icon = (sync_status == "Synced") and "✓" or "⚠"
+    local health_status = app.status.health.status or "Unknown"
     local commit_sha = app.status.sync.revision or "unknown"
     local short_sha = commit_sha:sub(1, 7)
     local branch = app.spec.source.targetRevision or "unknown"
 
     app_names[i] = {
       name = app.metadata.name,
-      icon = icon,
       sha = short_sha,
       branch = branch,
-      status = sync_status,
+      sync_status = sync_status,
+      health_status = health_status,
     }
   end
 
@@ -509,21 +509,27 @@ function draw_lines()
   local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
 
   for i, app in ipairs(app_names) do
-    -- Get status icon and highlight group
-    local status_icon, status_hl
-    if app.status == "Synced" then
-      status_icon = status_icon or "✓"
-      status_hl = status_hl or "String"
-    else
-      status_icon = status_icon or "⚠"
-      status_hl = status_hl or "WarningMsg"
+    local icon = "✔" -- default icon
+    local status_hl = "String"  -- default highlight
+
+    -- Determine highlight group based on health status
+    if app.sync_status == "OutOfSync" then
+      status_hl = "WarningMsg"  -- Yellow highlight for out of sync
+      icon = "⚠"
+    elseif app.health_status == "Progressing" then
+      status_hl = "WarningMsg"  -- Yellow highlight for out of sync
+      icon = "↻"
+    elseif app.health_status == "Degraded" then
+      status_hl = "ErrorMsg"  -- Red highlight for degraded health
+      icon = "✗"
     end
 
-    -- Build line: status icon + space + app name [+ branch and sha if current line]
-    local base = string.format("%s %s", status_icon, app.name)
+    -- Build line: status icon + app name
+    local base = string.format("%s %s", icon, app.name)
 
     if i == cursor_line then
-      base = base .. string.format(" (%s %s) [%s]", app.branch, app.sha, Auth.get_current_context())
+      -- Add context, branch, git SHA, sync status and health status of the app
+      base = base .. string.format(" (%s, %s:%s) [%s, %s]", Auth.get_current_context(), app.branch, app.sha, app.sync_status, app.health_status)
     end
 
     lines[i] = base
@@ -538,8 +544,15 @@ function draw_lines()
   vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
 
   for i, app in ipairs(app_names) do
-    -- Highlight entire line segment (status icon + space + app name)
-    local hl_group = (app.status == "Synced") and "String" or "WarningMsg"
+    -- Highlight entire line segment (status icon + app name) based on app status
+    local hl_group = "String"
+
+    if app.sync_status == "OutOfSync" or app.health_status == "Progressing" then
+      hl_group = "WarningMsg"  -- Yellow highlight for out of sync
+    elseif app.health_status == "Degraded" then
+      hl_group = "ErrorMsg"  -- Red highlight for degraded health
+    end
+
     -- Highlight the base line length
     local highlight_end = #lines[i]
     vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i - 1, 0, highlight_end)
