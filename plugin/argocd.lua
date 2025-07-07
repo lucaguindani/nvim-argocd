@@ -15,13 +15,13 @@ if not argocd_ok then
   return
 end
 
--- Check if plenary is installed
+-- Check if plenary plugin is installed
 local plenary_ok, _ = pcall(require, "plenary")
 if not plenary_ok then
   vim.notify("[argocd.nvim] plenary.nvim is not installed!", vim.log.levels.ERROR)
 end
 
--- Check if notify is installed
+-- Check if notify plugin is installed, load it or fallback to default vim.notify
 local notify_ok, notify = pcall(require, "notify")
 if not notify_ok then
   notify = vim.notify
