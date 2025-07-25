@@ -76,7 +76,7 @@ export ARGOCD_PASSWORD_STAGE="your-password"
 
 | Command              | Description                                           |
 |----------------------|-------------------------------------------------------|
-| `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete, r=Refresh)   |
+| `:ArgoList`          | Manage apps (s=Sync, u=Update, d=Delete, h=Refresh)   |
 | `:ArgoSync <app>`    | Sync a specific app                                   |
 | `:ArgoRefresh <app>` | Hard refresh of a specific app state                  |
 | `:ArgoUpdate <app>`  | Update a specific app parameters                      |
@@ -87,9 +87,8 @@ export ARGOCD_PASSWORD_STAGE="your-password"
 
 | Keys    | Action       |
 |---------|--------------|
-| `<CR>`  | Sync app     |
 | `<C-s>` | Sync app     |
-| `<C-f>` | Refresh app  |
+| `<C-h>` | Refresh app  |
 | `<C-u>` | Update app   |
 | `<C-d>` | Delete app   |
 

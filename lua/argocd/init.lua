@@ -171,8 +171,8 @@ function M.list_apps()
       end,
     })
 
-    -- Set key to refresh all projects
-    vim.api.nvim_buf_set_keymap(buf, "n", "r", "", {
+    -- Set key to hard refresh the project under cursor
+    vim.api.nvim_buf_set_keymap(buf, "n", "h", "", {
       noremap = true,
       silent = true,
       callback = function()
@@ -393,6 +393,61 @@ function M.telescope_apps()
   local conf = require('telescope.config').values
   local actions = require('telescope.actions')
   local action_state = require('telescope.actions.state')
+  local previewers = require('telescope.previewers')
+
+  local function app_info_previewer()
+    return previewers.new_buffer_previewer{
+      define_preview = function(self, entry, status)
+        local app_name = entry.value or entry[1]
+        if not app_name then return end
+        local res = Api.get_application_details(app_name)
+        if res.status ~= 200 then
+          vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {"Failed to fetch details"})
+          return
+        end
+        local app_data = vim.fn.json_decode(res.body)
+        local info = {
+          "-----------------------------------------------------------------------------",
+          "| <C-s> Sync app | <C-f>	Refresh app | <C-u> Update app | <C-d> Delete app |",
+          "-----------------------------------------------------------------------------",
+          "",
+          "Name: " .. (app_data.metadata and app_data.metadata.name or ""),
+          "Namespace: " .. (app_data.metadata and app_data.metadata.namespace or ""),
+          "Health: " .. (app_data.status and app_data.status.health and app_data.status.health.status or "Unknown"),
+          "Sync: " .. (app_data.status and app_data.status.sync and app_data.status.sync.status or "Unknown"),
+          "Revision: " .. (app_data.spec and app_data.spec.source and app_data.spec.source.targetRevision or ""),
+        }
+        -- Add Helm parameters if present
+        local helm_params = app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters
+        if helm_params and #helm_params > 0 then
+          table.insert(info, "")
+          table.insert(info, "Helm Parameters:")
+          for _, p in ipairs(helm_params) do
+            table.insert(info, "  " .. (p.name or "") .. " = " .. (p.value or ""))
+          end
+        end
+        -- Add labels if present
+        local labels = app_data.metadata and app_data.metadata.labels
+        if labels and next(labels) then
+          table.insert(info, "")
+          table.insert(info, "Labels:")
+          for k, v in pairs(labels) do
+            table.insert(info, "  " .. k .. " = " .. v)
+          end
+        end
+        -- Add annotations if present
+        local annotations = app_data.metadata and app_data.metadata.annotations
+        if annotations and next(annotations) then
+          table.insert(info, "")
+          table.insert(info, "Annotations:")
+          for k, v in pairs(annotations) do
+            table.insert(info, "  " .. k .. " = " .. v)
+          end
+        end
+        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, info)
+      end,
+    }
+  end
 
   local res = Api.get_applications()
   if res.status ~= 200 then
@@ -412,7 +467,8 @@ function M.telescope_apps()
       results = apps,
     },
     sorter = conf.generic_sorter({}),
-    attach_mappings = function(prompt_bufnr, map)
+    previewer = app_info_previewer(),
+    attach_mappings = function(_, map)
       map('i', '<C-s>', function()
         local selection = action_state.get_selected_entry()
         if selection and selection[1] then
@@ -431,18 +487,14 @@ function M.telescope_apps()
           M.delete_app(selection[1])
         end
       end)
-      map('i', '<C-f>', function()
+      map('i', '<C-h>', function()
         local selection = action_state.get_selected_entry()
         if selection and selection[1] then
           M.refresh_app(selection[1])
         end
       end)
       actions.select_default:replace(function()
-        actions.close(prompt_bufnr)
-        local selection = action_state.get_selected_entry()
-        if selection and selection[1] then
-          M.sync_app(selection[1])
-        end
+        return nil
       end)
       return true
     end
