@@ -132,4 +132,51 @@ function Api.check_application_exists(app_name)
   return true, nil
 end
 
+function Api.get_application_helm_params(app_name)
+  local exists, err = Api.check_application_exists(app_name)
+  if not exists then
+    return err
+  end
+
+  -- First get application details to extract source configuration
+  local app_res = Api.get_application_details(app_name)
+  if app_res.status ~= 200 then
+    return app_res
+  end
+
+  local app_data = vim.fn.json_decode(app_res.body)
+  local source = app_data.spec and app_data.spec.source
+  if not source then
+    return { status = 400, body = "Application source not found" }
+  end
+
+  -- Check if it's a Helm application
+  if not source.chart and not source.helm then
+    return { status = 400, body = "Application is not a Helm application or does not have Helm configuration" }
+  end
+
+  -- Get the repoURL
+  local repo_url = source.repoURL
+  if not repo_url then
+    return { status = 400, body = "Repository URL not found in application source" }
+  end
+
+  -- URL encode the repository URL for use in the path
+  -- Replace special characters with percent-encoded equivalents
+  local encoded_repo_url = repo_url:gsub("([^%w _%%%-%.~])", function(c)
+    return string.format("%%%02X", string.byte(c))
+  end)
+  encoded_repo_url = encoded_repo_url:gsub(" ", "+")
+
+  -- Build request body for app details
+  local request_body = {
+    source = source,
+    appName = app_name,
+    appProject = app_data.spec.project or "default"
+  }
+
+  -- Make request to get app details with all parameters
+  return Api.request("post", "/api/v1/repositories/" .. encoded_repo_url .. "/appdetails", request_body)
+end
+
 return Api

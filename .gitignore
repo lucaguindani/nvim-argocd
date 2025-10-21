@@ -35,3 +35,6 @@ Thumbs.db
 
 # Ignore coverage reports (if you add tests)
 coverage/
+
+# Ignore swagger files
+swagger.json

@@ -211,38 +211,129 @@ function M.update_app(app_name)
       return
     end
 
-    -- Fetch full app data
+    -- Fetch full app data to get current overridden parameters
     local res = Api.get_application_details(app_name)
     if res.status ~= 200 then
       notify("Failed to fetch app: " .. res.body, vim.log.levels.ERROR, { title = "ArgoUpdate" })
       return
     end
     local app_data = vim.fn.json_decode(res.body)
-    local params = {}
+
+    -- Get current overridden parameters
+    local overridden_params = {}
     if app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters then
-      params = app_data.spec.source.helm.parameters
+      overridden_params = app_data.spec.source.helm.parameters
     end
 
-    -- Prepare editable lines: key=value
-    local param_lines = {}
-    for _, p in ipairs(params) do
-      table.insert(param_lines, (p.name or "") .. "=" .. (p.value or ""))
+    -- Create a map of overridden parameters for quick lookup
+    local overridden_map = {}
+    for _, p in ipairs(overridden_params) do
+      overridden_map[p.name] = p.value
+    end
+
+    -- Fetch all available parameters from the Helm chart
+    local helm_params_res = Api.get_application_helm_params(app_name)
+    local all_params = {}
+
+    if helm_params_res.status == 200 then
+      local helm_data = vim.fn.json_decode(helm_params_res.body)
+      if helm_data.helm and helm_data.helm.parameters then
+        all_params = helm_data.helm.parameters
+      end
+    end
+
+    -- If we couldn't get all parameters, fall back to just showing overridden ones
+    if #all_params == 0 then
+      all_params = overridden_params
+      notify("Could not fetch all parameters, showing only overridden parameters", vim.log.levels.WARN, { title = "ArgoUpdate" })
+    end
+
+    -- State for toggling between all params and overridden only
+    local show_all = true
+
+    -- Function to prepare parameter lines based on current view mode
+    local function prepare_param_lines()
+      local param_lines = {}
+      local params_to_show = show_all and all_params or overridden_params
+
+      for _, p in ipairs(params_to_show) do
+        local param_name = p.name or ""
+        local param_value = overridden_map[param_name] or (p.value or "")
+        table.insert(param_lines, param_name .. "=" .. param_value)
+      end
+
+      return param_lines
     end
 
     -- Floating window for editing
     local edit_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
     vim.bo[edit_buf].filetype = "argocdparams"
     vim.bo[edit_buf].buftype = "acwrite"
     vim.bo[edit_buf].bufhidden = "wipe"
     vim.bo[edit_buf].modifiable = true
 
-    local title = " Edit " .. app_name .. " parameters [" .. Auth.get_current_context() .. "] "
-    local width = math.max(50, #title + 4)
-    local height = math.max(7, #param_lines + 2)
+    -- Namespace for extmarks
+    local ns_id = vim.api.nvim_create_namespace("argocd_params_override")
+    local win = nil
+
+    -- Function to apply visual indicators
+    local function apply_highlights()
+      if not vim.api.nvim_buf_is_valid(edit_buf) then
+        return
+      end
+
+      vim.api.nvim_buf_clear_namespace(edit_buf, ns_id, 0, -1)
+
+      if show_all then
+        local current_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, false)
+        for i, line in ipairs(current_lines) do
+          local param_name = line:match("^([^=]+)=")
+          if param_name and overridden_map[param_name] then
+            -- Add virtual text at the end of the line with an icon/indicator
+            vim.api.nvim_buf_set_extmark(edit_buf, ns_id, i - 1, 0, {
+              virt_text = {{ " ●", "WarningMsg" }},
+              virt_text_pos = "eol",
+            })
+
+            -- Also highlight the entire line with a subtle background
+            vim.api.nvim_buf_add_highlight(edit_buf, ns_id, "DiffChange", i - 1, 0, -1)
+          end
+        end
+      end
+    end
+
+    -- Function to refresh the buffer content
+    local function refresh_buffer()
+      local param_lines = prepare_param_lines()
+      vim.bo[edit_buf].modifiable = true
+      vim.api.nvim_buf_set_lines(edit_buf, 0, -1, false, param_lines)
+      apply_highlights()
+
+      -- Update window title to show current mode
+      if win and vim.api.nvim_win_is_valid(win) then
+        local mode_text = show_all and "All parameters" or "Overridden only"
+        local title = " Edit " .. app_name .. " [" .. Auth.get_current_context() .. "] - " .. mode_text .. " "
+        vim.api.nvim_win_set_config(win, { title = { { title, "FloatTitle" } } })
+      end
+    end
+
+    -- Maintain highlighting when buffer changes
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+      buffer = edit_buf,
+      callback = function()
+        apply_highlights()
+      end,
+    })
+
+    -- Initial buffer setup
+    refresh_buffer()
+
+    local title = " Edit " .. app_name .. " [" .. Auth.get_current_context() .. "] - All parameters "
+    local width = math.max(80, #title + 4)
+    local height = math.min(math.floor(vim.o.lines * 0.8), 25)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
-    local win = vim.api.nvim_open_win(edit_buf, true, {
+    win = vim.api.nvim_open_win(edit_buf, true, {
       relative = "editor",
       row = row,
       col = col,
@@ -250,12 +341,22 @@ function M.update_app(app_name)
       height = height,
       style = "minimal",
       border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-      title = title,
+      title = { { title, "FloatTitle" } },
       title_pos = "center",
       footer = {
-        { " <CR> to save, q to quit ", "Comment" }
+        { " ● = Overridden | t = toggle | <CR> = save | q = quit ", "Comment" }
       },
       footer_pos = "center",
+    })
+
+    -- Toggle handler: t
+    vim.api.nvim_buf_set_keymap(edit_buf, "n", "t", "", {
+      noremap = true,
+      silent = true,
+      callback = function()
+        show_all = not show_all
+        refresh_buffer()
+      end,
     })
 
     -- Save handler: <CR> in normal mode
@@ -265,12 +366,25 @@ function M.update_app(app_name)
       callback = function()
         local lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, false)
         local new_params = {}
+
+        -- Build a map of default values from all_params for comparison
+        local default_values = {}
+        for _, p in ipairs(all_params) do
+          default_values[p.name] = p.value
+        end
+
         for _, line in ipairs(lines) do
           local k, v = line:match("^([^=]+)=(.*)$")
           if k then
-            table.insert(new_params, { name = k, value = v })
+            -- Only include parameters that differ from their default values
+            -- or were already overridden
+            local default_val = default_values[k] or ""
+            if v ~= default_val or overridden_map[k] then
+              table.insert(new_params, { name = k, value = v })
+            end
           end
         end
+
         local patch_body = {
           name = app_name,
           patch = vim.fn.json_encode({
@@ -417,12 +531,12 @@ function M.telescope_apps()
           "Sync: " .. (app_data.status and app_data.status.sync and app_data.status.sync.status or "Unknown"),
           "Revision: " .. (app_data.spec and app_data.spec.source and app_data.spec.source.targetRevision or ""),
         }
-        -- Add Helm parameters if present
-        local helm_params = app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters
-        if helm_params and #helm_params > 0 then
+        -- Add app overridden parameters if present
+        local overridden_params = app_data.spec and app_data.spec.source and app_data.spec.source.helm and app_data.spec.source.helm.parameters
+        if overridden_params and #overridden_params > 0 then
           table.insert(info, "")
-          table.insert(info, "Helm Parameters:")
-          for _, p in ipairs(helm_params) do
+          table.insert(info, "Overridden parameters:")
+          for _, p in ipairs(overridden_params) do
             table.insert(info, "  " .. (p.name or "") .. " = " .. (p.value or ""))
           end
         end
