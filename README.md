@@ -18,7 +18,7 @@ Supports [lazy.nvim](https://github.com/folke/lazy.nvim) setup, and optionally i
 
 ## Requirements
 
-- Neovim 0.7+
+- Neovim 0.8+
 - nvim-notify (optional)
 - telescope.nvim (optional)
 

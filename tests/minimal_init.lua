@@ -2,15 +2,17 @@
 local script_path = vim.api.nvim_eval('expand("<sfile>:p")')
 local plugin_root = vim.fn.fnamemodify(script_path, ':h:h')
 
--- Determine Plenary's path and add it to runtimepath
 local data_plenary_path = vim.fn.stdpath('data') .. '/lazy/plenary.nvim'
 local config_plenary_path = vim.fn.stdpath('config') .. '/lazy/plenary.nvim'
+local vendor_plenary_path = vim.fn.expand('~') .. '/.local/share/nvim/site/pack/vendor/start/plenary.nvim'
 local actual_plenary_path
 
 if vim.fn.isdirectory(data_plenary_path) == 1 then
   actual_plenary_path = data_plenary_path
 elseif vim.fn.isdirectory(config_plenary_path) == 1 then
   actual_plenary_path = config_plenary_path
+elseif vim.fn.isdirectory(vendor_plenary_path) == 1 then
+  actual_plenary_path = vendor_plenary_path
 else
   vim.api.nvim_err_writeln("Plenary not found at expected lazy.nvim paths. Ensure Plenary is installed via lazy.nvim.")
 end
