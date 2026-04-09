@@ -14,7 +14,8 @@ jobs:
     strategy:
       matrix:
         version:
-          - stable
+          - v0.12.1
+          - v0.11.6
           - v0.10.4
           - v0.9.5
           - v0.8.3
